@@ -1,4 +1,5 @@
 # AI 知识库对话系统
+<img width="1920" height="945" alt="image" src="https://github.com/user-attachments/assets/29718453-55c4-4687-8cd3-da7074472388" />
 
 基于 RAG（检索增强生成）技术的多轮对话知识库系统。上传 PDF/TXT/Markdown 文档，通过向量检索 + LLM 实现智能问答，支持多知识库管理、对话历史、SSE 流式输出和多级 Redis 缓存。
 
