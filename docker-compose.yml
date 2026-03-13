@@ -1,0 +1,188 @@
+# ==============================================================================
+# docker-compose.yml — AI 知识库对话系统完整部署配置
+# ==============================================================================
+#
+# 服务架构：
+#
+#   ┌─────────────────────────────────────────────────┐
+#   │  外部访问 :80                                    │
+#   │      ↓                                          │
+#   │  [nginx] ← 统一入口，反向代理                    │
+#   │   /api/* → [backend:8000]  FastAPI              │
+#   │      /*  → [frontend:80]   React 静态文件        │
+#   │                  ↓                              │
+#   │  [backend] ← 依赖 ─┬─ [postgres:5432]           │
+#   │                    └─ [redis:6379]              │
+#   └─────────────────────────────────────────────────┘
+#
+# 使用方式：
+#   1. 复制 .env.example 为 .env 并填写必要配置
+#   2. docker-compose up -d          # 启动所有服务
+#   3. docker-compose logs -f        # 查看实时日志
+#   4. docker-compose down -v        # 停止并清除数据
+#
+# ==============================================================================
+
+services:
+
+  # ============================================================================
+  # postgres：向量数据库（PostgreSQL 15 + pgvector 扩展）
+  # 镜像 pgvector/pgvector:pg15 在标准 PG15 基础上预装了 pgvector 扩展，
+  # 无需手动执行 CREATE EXTENSION，LangChain PGVector 会在首次使用时自动创建。
+  # ============================================================================
+  postgres:
+    image: pgvector/pgvector:pg15   # 官方 pgvector 镜像，内置向量搜索扩展
+    container_name: rag_postgres
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-rag_db}        # 数据库名称
+      POSTGRES_USER:     ${POSTGRES_USER:-rag_user}    # 数据库用户名
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}          # 数据库密码（必填，无默认值）
+      PGDATA:            /var/lib/postgresql/data/pgdata  # 数据目录（避免挂载点冲突）
+    volumes:
+      # 将数据库文件持久化到 Docker named volume
+      # 容器删除后数据仍然保留，只有 docker-compose down -v 才会清除
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      # pg_isready：检查 PostgreSQL 是否接受连接
+      # 后续服务通过 condition: service_healthy 等待此检查通过再启动
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rag_user} -d ${POSTGRES_DB:-rag_db}"]
+      interval: 10s      # 每 10 秒检查一次
+      timeout:  5s       # 单次检查超时 5 秒
+      retries:  5        # 连续失败 5 次才标记为 unhealthy
+      start_period: 15s  # 容器启动后等待 15 秒再开始检查（PG 初始化需要时间）
+    networks:
+      - rag_network
+    restart: unless-stopped  # 除非手动停止，否则崩溃后自动重启
+
+  # ============================================================================
+  # redis：缓存服务（语义缓存 / 精确缓存 / 热门问题统计）
+  # 使用 Alpine 变体，体积小。生产环境建议开启 AOF 持久化。
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: rag_redis
+    # 带密码启动（密码从 .env 读取；若 REDIS_PASSWORD 为空则不启用认证）
+    command: >
+      sh -c '
+        if [ -n "${REDIS_PASSWORD}" ]; then
+          redis-server --requirepass "${REDIS_PASSWORD}" --appendonly yes
+        else
+          redis-server --appendonly yes
+        fi
+      '
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}  # 传入 shell 脚本使用
+    volumes:
+      # AOF 持久化文件，服务重启后不丢失缓存数据
+      - redis_data:/data
+    healthcheck:
+      # redis-cli ping：返回 PONG 表示服务正常
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout:  3s
+      retries:  5
+      start_period: 5s
+    networks:
+      - rag_network
+    restart: unless-stopped
+
+  # ============================================================================
+  # backend：FastAPI 后端服务
+  # 依赖 postgres 和 redis 健康就绪后才启动，避免连接失败报错
+  # ============================================================================
+  backend:
+    build:
+      context:    ./backend      # 构建上下文目录
+      dockerfile: Dockerfile     # 使用 backend/Dockerfile
+    container_name: rag_backend
+    environment:
+      # --- 数据库连接 ---
+      # 容器内通过 Docker 网络用服务名 postgres 访问数据库
+      DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-rag_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-rag_db}"
+      # 同步驱动 URL（PGVector 依赖，使用 psycopg3）
+      SYNC_DATABASE_URL: "postgresql+psycopg://${POSTGRES_USER:-rag_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-rag_db}"
+
+      # --- Redis 连接 ---
+      # 若密码为空，URL 格式为 redis://redis:6379/0（无 @: 部分）
+      REDIS_URL: "${REDIS_URL_OVERRIDE:-redis://:${REDIS_PASSWORD:-}@redis:6379/0}"
+
+      # --- LLM 配置（智谱 GLM 或其他 OpenAI 兼容 API）---
+      LLM_API_KEY:       ${LLM_API_KEY}
+      LLM_BASE_URL:      ${LLM_BASE_URL:-https://open.bigmodel.cn/api/paas/v4}
+      LLM_MODEL_NAME:    ${LLM_MODEL_NAME:-glm-4-flash}
+
+      # --- Embedding 配置 ---
+      EMBEDDING_API_KEY:       ${EMBEDDING_API_KEY}
+      EMBEDDING_BASE_URL:      ${EMBEDDING_BASE_URL:-https://open.bigmodel.cn/api/paas/v4}
+      EMBEDDING_MODEL_NAME:    ${EMBEDDING_MODEL_NAME:-embedding-3}
+
+      # --- 应用配置 ---
+      CORS_ORIGINS:    '["http://localhost", "http://localhost:3080"]'
+      CHUNK_SIZE:      ${CHUNK_SIZE:-500}
+      CHUNK_OVERLAP:   ${CHUNK_OVERLAP:-50}
+    depends_on:
+      postgres:
+        condition: service_healthy  # 等待 postgres healthcheck 通过
+      redis:
+        condition: service_healthy  # 等待 redis healthcheck 通过
+    networks:
+      - rag_network
+    restart: unless-stopped
+    # 开发时如需挂载代码目录实现热重载，取消以下注释：
+    # volumes:
+    #   - ./backend:/app
+
+  # ============================================================================
+  # frontend：React 构建产物 + 轻量 Nginx 托管
+  # 多阶段构建：第一阶段 Node.js 编译，第二阶段仅保留静态文件和 Nginx
+  # ============================================================================
+  frontend:
+    build:
+      context:    ./frontend
+      dockerfile: Dockerfile
+      args:
+        # 将后端 API 基础 URL 注入构建时环境变量
+        # 在 Docker 部署场景下，浏览器直接访问的是 nginx 反代，无需指定 backend 地址
+        VITE_API_BASE_URL: ""
+    container_name: rag_frontend
+    networks:
+      - rag_network
+    restart: unless-stopped
+
+  # ============================================================================
+  # nginx：统一外部入口（反向代理）
+  # 对外只暴露一个端口，统一路由前后端请求
+  # ============================================================================
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: rag_nginx
+    ports:
+      # 映射宿主机端口 → 容器 80 端口
+      # NGINX_PORT 默认 80，可在 .env 中改为 8080 等避免冲突
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      # 挂载 nginx 配置文件（只读模式）
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - rag_network
+    restart: unless-stopped
+
+# ==============================================================================
+# 网络：所有服务共用同一个 bridge 网络，通过服务名互相访问
+# ==============================================================================
+networks:
+  rag_network:
+    driver: bridge
+    name: rag_network  # 固定网络名称，方便排查
+
+# ==============================================================================
+# 数据卷：持久化存储，容器重建后数据不丢失
+# ==============================================================================
+volumes:
+  postgres_data:
+    name: rag_postgres_data  # 固定卷名
+  redis_data:
+    name: rag_redis_data

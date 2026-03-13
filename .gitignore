@@ -1,0 +1,57 @@
+# ==============================================================================
+# .gitignore — 忽略不应提交到代码仓库的文件
+# ==============================================================================
+
+# ---- 环境变量（含密钥，绝对不能提交）----
+.env
+.env.local
+.env.*.local
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+*.cover
+
+# ---- Node.js / 前端 ----
+node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/coverage/
+*.local
+
+# ---- IDE / 编辑器 ----
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ---- Docker ----
+# docker-compose.override.yml 可用于本地开发配置覆盖（不提交）
+docker-compose.override.yml
+
+# ---- 日志 ----
+*.log
+logs/
+
+# ---- 上传的文档（临时文件）----
+backend/uploads/
+backend/tmp/

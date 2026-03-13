@@ -1,0 +1,43 @@
+# ==================================================
+# 项目依赖清单
+# 安装命令：pip install -r requirements.txt
+# ==================================================
+
+# ---------- Web 框架 ----------
+fastapi==0.115.6              # 高性能异步 Web 框架
+uvicorn[standard]==0.34.0     # ASGI 服务器，[standard] 包含 websocket 支持
+
+# ---------- 数据库 ----------
+sqlalchemy==2.0.36            # ORM 框架，2.x 版本原生支持 async
+asyncpg==0.30.0               # PostgreSQL 异步驱动（配合 SQLAlchemy async 使用）
+alembic==1.14.0               # 数据库迁移工具
+
+# ---------- 数据校验与配置 ----------
+pydantic==2.10.4              # 数据校验框架（v2 版本，性能更好）
+pydantic-settings==2.7.0      # 从环境变量/dotenv 读取配置，基于 Pydantic v2
+
+# ---------- 缓存 ----------
+redis==5.2.1                  # Redis 客户端，支持异步操作
+
+# ---------- LangChain 相关 ----------
+langchain==0.3.14             # 核心框架：链路编排、记忆、检索等
+langchain-openai==0.3.0       # LangChain 的 OpenAI 适配器（支持兼容接口，如 DeepSeek）
+langchain-community==0.3.14   # 社区扩展：包含 PGVector 向量存储等
+langchain-postgres==0.0.12    # LangChain 官方 PostgreSQL/PGVector 集成
+
+# ---------- 向量数据库 ----------
+pgvector==0.2.5               # pgvector Python 客户端（langchain-postgres 0.0.12 要求 >=0.2.5,<0.3.0）
+
+# ---------- 文档解析 ----------
+pdfplumber==0.11.4            # PDF 解析库，擅长提取含布局/表格的复杂 PDF 文本（基于 pdfminer.six）
+pypdf==5.1.0                  # PDF 辅助库，LangChain PyPDFLoader 依赖
+python-multipart==0.0.20      # 支持 FastAPI 接收 multipart/form-data（文件上传必须）
+
+# ---------- PostgreSQL 同步驱动（PGVector 依赖）----------
+psycopg[binary]==3.2.4        # psycopg3 同步驱动，langchain_postgres.PGVector 的底层连接驱动
+                              # [binary] 表示使用预编译二进制版本，省去本地编译
+
+# ---------- 工具库 ----------
+python-dotenv==1.0.1          # 从 .env 文件加载环境变量
+httpx==0.28.1                 # 异步 HTTP 客户端，LangChain 内部依赖
+tiktoken==0.8.0               # OpenAI tokenizer，用于计算 token 数量
