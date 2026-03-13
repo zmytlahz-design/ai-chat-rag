@@ -62,12 +62,14 @@ docker-compose up -d
 
 ### 4. 访问服务
 
+默认端口为 **3080**（可在 `.env` 中设置 `NGINX_PORT`）。若使用默认配置：
+
 | 地址 | 说明 |
 |------|------|
-| http://localhost | 前端界面（React）|
-| http://localhost/api/v1/docs | FastAPI 交互文档（Swagger UI）|
-| http://localhost/api/v1/redoc | FastAPI 文档（ReDoc）|
-| http://localhost/health | Nginx 健康检查 |
+| http://localhost:3080 | 前端界面（React）|
+| http://localhost:3080/api/v1/docs | FastAPI 交互文档（Swagger UI）|
+| http://localhost:3080/api/v1/redoc | FastAPI 文档（ReDoc）|
+| http://localhost:3080/health | Nginx 健康检查 |
 
 ### 5. 常用命令
 
@@ -99,11 +101,30 @@ docker exec -it rag_postgres psql -U rag_user -d rag_db
 
 ### 6. 初始化使用
 
-1. 打开 http://localhost
+1. 打开 http://localhost:3080（或你配置的端口）
 2. 点击"知识库管理" → 创建第一个知识库
 3. 进入"文档管理" → 拖拽上传 PDF/TXT/MD 文件
 4. 等待文档处理完成（状态变为"已完成"）
 5. 回到主页面开始对话
+
+### 7. 将本项目上传到 GitHub
+
+本地已初始化 Git 并完成首次提交后，按以下步骤推到 GitHub：
+
+1. 在 [GitHub](https://github.com/new) 新建仓库（Repository name 如 `ai-chat-rag`，可设为 Public，**不要**勾选 “Add a README”）。
+2. 在项目根目录执行（将 `YOUR_USERNAME` 和 `ai-chat-rag` 换成你的用户名和仓库名）：
+
+```bash
+git remote add origin https://github.com/YOUR_USERNAME/ai-chat-rag.git
+git push -u origin main
+```
+
+若使用 SSH：
+
+```bash
+git remote add origin git@github.com:YOUR_USERNAME/ai-chat-rag.git
+git push -u origin main
+```
 
 ---
 
