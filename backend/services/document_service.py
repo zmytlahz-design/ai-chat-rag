@@ -35,7 +35,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 # OpenAIEmbeddings：LangChain 的 OpenAI Embedding 适配器
 # 通过 openai_api_base 可以对接任何兼容 OpenAI 格式的 Embedding 服务
-# 例如：智谱 AI embedding-3、DeepSeek text-embedding 等
+# 例如：智谱 AI embedding-3、OpenAI 官方或其他 OpenAI 兼容 Embedding 端点
 
 from langchain_postgres import PGVector
 # PGVector：LangChain 官方的 pgvector 向量存储集成
@@ -83,7 +83,7 @@ class DocumentService:
         # ---- Embedding 模型 ----
         # openai_api_key / openai_api_base：兼容任意 OpenAI 格式的 Embedding 服务
         # 智谱 AI：base_url = https://open.bigmodel.cn/api/paas/v4，model = embedding-3
-        # DeepSeek：暂不提供独立 Embedding API，可用智谱或 text2vec 本地模型替代
+        # 亦可使用本地向量模型（如 text2vec）自建兼容端点
         self.embeddings = OpenAIEmbeddings(
             model=settings.EMBEDDING_MODEL_NAME,
             openai_api_key=settings.EMBEDDING_API_KEY,

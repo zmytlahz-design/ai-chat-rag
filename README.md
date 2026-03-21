@@ -3,6 +3,22 @@
 
 基于 RAG（检索增强生成）技术的多轮对话知识库系统。上传 PDF/TXT/Markdown 文档，通过向量检索 + LLM 实现智能问答，支持多知识库管理、对话历史、SSE 流式输出和多级 Redis 缓存。
 
+## 技术文章（GitHub 文档）
+
+| 文章 | 说明 |
+|------|------|
+| [手搓 ReAct Agent 和 LangChain 的实现对比](docs/手搓-ReAct-Agent-和-LangChain-的实现对比.md) | 手写 ReAct 循环与 LangChain Agent 的对比，以及本项目为何采用固定 RAG 三步 |
+| [RAG 全链路落地踩坑记录](docs/RAG-全链路落地踩坑记录.md) | 从解析、分块、向量化到检索与生成的落地坑点与解决方案 |
+| [Function Calling 多工具编排的闭环实现](docs/Function-Calling-多工具编排的闭环实现.md) | 多工具定义、绑定与「调用→执行→再调用」的闭环实现 |
+
+---
+
+## 项目截图
+
+![对话界面](docs/screenshot.png)
+
+*左侧：知识库列表与历史对话；右侧：基于知识库的 RAG 对话与 Markdown 回复。*
+
 ## 技术栈
 
 | 层级 | 技术选型 |
@@ -14,8 +30,8 @@
 | 向量数据库 | PostgreSQL 15 + pgvector 扩展 |
 | 缓存 | Redis 7（语义缓存 + 精确缓存 + 热门统计）|
 | ORM | SQLAlchemy 2.x（asyncpg 异步驱动）|
-| LLM | DeepSeek API（OpenAI 兼容格式）|
-| Embedding | 智谱 AI / DeepSeek（OpenAI 兼容）|
+| LLM | 智谱 BigModel（OpenAI 兼容格式）|
+| Embedding | 智谱 AI（OpenAI 兼容）|
 | RAG 框架 | LangChain + langchain-postgres（PGVector）|
 | 流式传输 | SSE（Server-Sent Events）|
 | 部署 | Docker + docker-compose + Nginx |
@@ -26,7 +42,7 @@
 
 - Docker >= 24.0
 - docker-compose >= 2.20（Compose V2）
-- 有效的 LLM API Key（DeepSeek / 智谱 / OpenAI 等）
+- 有效的 LLM API Key（智谱 BigModel 等，OpenAI 兼容端点）
 
 ### 1. 克隆项目
 
@@ -252,7 +268,7 @@ L1 精确缓存（Redis String，MD5 hash，TTL 24h）
     ↓ 未命中
 L2 语义缓存（Redis Hash，余弦相似度 > 0.95，TTL 24h）
     ↓ 未命中
-L3 RAG 完整链路（向量检索 + DeepSeek LLM）
+L3 RAG 完整链路（向量检索 + 智谱 GLM）
     ↓ 生成后存入 L1 + L2
 ```
 
@@ -290,11 +306,11 @@ npm run dev   # 访问 http://localhost:5173
 | `POSTGRES_DB` | | `rag_db` | 数据库名 |
 | `REDIS_PASSWORD` | | 空（不认证）| Redis 密码 |
 | `LLM_API_KEY` | ✅ | — | LLM API 密钥 |
-| `LLM_BASE_URL` | | DeepSeek | LLM 接口地址 |
-| `LLM_MODEL` | | `deepseek-chat` | LLM 模型名 |
+| `LLM_BASE_URL` | | 智谱 BigModel | LLM 接口地址（如 `https://open.bigmodel.cn/api/paas/v4`）|
+| `LLM_MODEL_NAME` | | `glm-4-flash` | LLM 模型名 |
 | `EMBEDDING_API_KEY` | ✅ | — | Embedding API 密钥 |
 | `EMBEDDING_BASE_URL` | | 智谱 AI | Embedding 接口地址 |
-| `EMBEDDING_MODEL` | | `embedding-3` | Embedding 模型名 |
+| `EMBEDDING_MODEL_NAME` | | `embedding-3` | Embedding 模型名 |
 | `NGINX_PORT` | | `80` | 对外暴露端口 |
 | `CHUNK_SIZE` | | `500` | 文档分块大小（字符数）|
 | `CHUNK_OVERLAP` | | `50` | 分块重叠大小（字符数）|

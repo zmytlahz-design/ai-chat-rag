@@ -21,7 +21,7 @@ redis==5.2.1                  # Redis 客户端，支持异步操作
 
 # ---------- LangChain 相关 ----------
 langchain==0.3.14             # 核心框架：链路编排、记忆、检索等
-langchain-openai==0.3.0       # LangChain 的 OpenAI 适配器（支持兼容接口，如 DeepSeek）
+langchain-openai==0.3.0       # LangChain 的 OpenAI 适配器（OpenAI 兼容端点，如智谱 BigModel）
 langchain-community==0.3.14   # 社区扩展：包含 PGVector 向量存储等
 langchain-postgres==0.0.12    # LangChain 官方 PostgreSQL/PGVector 集成
 

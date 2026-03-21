@@ -48,7 +48,7 @@ from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
 
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 # ChatOpenAI：封装了 OpenAI Chat Completion API
-#   通过 openai_api_base 参数可以替换为 DeepSeek 等兼容服务
+#   通过 openai_api_base 可指向智谱 BigModel 等 OpenAI 兼容服务
 # OpenAIEmbeddings：封装了 OpenAI Embedding API
 #   通过 openai_api_base 替换为智谱 AI 等兼容服务
 

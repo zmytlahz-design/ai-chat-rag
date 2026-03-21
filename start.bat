@@ -26,10 +26,15 @@ if not exist ".env" (
     exit /b 0
 )
 
-echo [1/3] 正在构建并启动所有服务...
+echo [1/3] 正在启动服务...
 echo.
-docker compose up -d --build
-
+docker compose up -d
+if %errorlevel% neq 0 (
+    echo.
+    echo [提示] 镜像不存在或启动失败，正在构建并启动（首次运行或依赖变更时会执行）...
+    echo.
+    docker compose up -d --build
+)
 if %errorlevel% neq 0 (
     echo.
     echo [错误] 启动失败，请检查上方日志

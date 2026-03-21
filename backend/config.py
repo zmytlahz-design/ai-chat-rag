@@ -39,18 +39,18 @@ class Settings(BaseSettings):
         description="Redis 缓存默认过期时间（秒），默认 1 小时"
     )
 
-    # ---------- LLM 配置（DeepSeek，OpenAI 兼容格式）----------
+    # ---------- LLM 配置（智谱 BigModel，OpenAI 兼容格式）----------
     LLM_API_KEY: str = Field(
-        default="your-deepseek-api-key",
-        description="DeepSeek 或其他兼容 OpenAI 格式的 LLM API Key"
+        default="your-zhipu-api-key",
+        description="智谱 AI API Key（open.bigmodel.cn 控制台获取）"
     )
     LLM_BASE_URL: str = Field(
-        default="https://api.deepseek.com/v1",
-        description="LLM API 基础地址，DeepSeek 兼容 OpenAI 格式"
+        default="https://open.bigmodel.cn/api/paas/v4",
+        description="LLM API 基础地址，默认智谱 OpenAI 兼容端点"
     )
     LLM_MODEL_NAME: str = Field(
-        default="deepseek-chat",
-        description="使用的 LLM 模型名称"
+        default="glm-4-flash",
+        description="LLM 模型名称，如 glm-4-flash、glm-4 等"
     )
     LLM_TEMPERATURE: float = Field(
         default=0.7,
@@ -61,10 +61,10 @@ class Settings(BaseSettings):
         description="LLM 单次最大生成 token 数"
     )
 
-    # ---------- Embedding 配置（智谱 AI 或 DeepSeek，OpenAI 兼容格式）----------
+    # ---------- Embedding 配置（智谱 AI，OpenAI 兼容格式）----------
     EMBEDDING_API_KEY: str = Field(
-        default="your-embedding-api-key",
-        description="Embedding 模型的 API Key（可与 LLM 用同一个）"
+        default="your-zhipu-api-key",
+        description="智谱 Embedding API Key（可与 LLM 使用同一 Key）"
     )
     EMBEDDING_BASE_URL: str = Field(
         default="https://open.bigmodel.cn/api/paas/v4",
