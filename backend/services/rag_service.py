@@ -222,7 +222,7 @@ class RAGService:
 
     def _to_history_tuples(self, chat_history: list[dict]) -> list[tuple[str, str]]:
         """
-        将 DB/Redis 格式的消息列表转换为 (user, assistant) 元组列表。
+        将消息列表转换为 (user, assistant) 元组列表。
 
         ConversationalRetrievalChain 的 chat_history 参数接受此格式。
 
@@ -499,10 +499,7 @@ class RAGService:
         """
         获取问题文本的 Embedding 向量。
 
-        供语义缓存模块调用：
-          1. 查询语义缓存前，需要先把用户问题转成向量
-          2. 缓存未命中后，把这个向量存入语义缓存供后续比对
-          3. 不用单独调用 Embedding API，复用 self.embeddings 实例
+        获取问题向量，供需要直接做向量比较的场景复用。
 
         OpenAIEmbeddings.aembed_query()：
           - 异步版本的 embed_query（langchain_openai 0.3+ 支持）
@@ -510,9 +507,8 @@ class RAGService:
           - 向量维度由 EMBEDDING_MODEL_NAME 决定（智谱 embedding-3 → 2048 维）
 
         与 RAG 检索的关系：
-          RAG 的 _retrieve_docs_sync 内部也会对问题做一次 Embedding，
-          目前存在一次重复计算。未来优化可将此处得到的向量直接
-          传给检索步骤，避免重复网络请求（TODO: 优化点）。
+          RAG 的 _retrieve_docs_sync 内部也会对问题做一次 Embedding。
+          如需进一步优化，可在上层复用该向量，减少重复请求。
         """
         try:
             # aembed_query 是异步方法，直接 await，不需要 to_thread
@@ -524,7 +520,7 @@ class RAGService:
             return embedding
         except Exception as e:
             logger.error(f"问题 Embedding 计算失败：{e}")
-            # 返回空列表，调用方（redis_service）会跳过语义缓存检查
+            # 返回空列表，调用方会直接走标准 RAG 生成流程
             return []
 
 

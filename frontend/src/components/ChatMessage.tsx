@@ -17,7 +17,6 @@ interface ChatMessageProps {
  * 状态：
  *   - isStreaming=true：显示"正在思考..."动画（content 为空时）
  *                       或正常显示内容 + 光标闪烁（content 非空时）
- *   - from_cache=true：显示"缓存"徽章
  */
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === 'user'
@@ -51,7 +50,7 @@ function UserMessage({ message }: { message: ChatMessageType }) {
 // ==================== AI 助手消息 ====================
 
 function AssistantMessage({ message }: { message: ChatMessageType }) {
-  const { content, isStreaming, sources, from_cache, cache_level } = message
+  const { content, isStreaming, sources } = message
   const isEmpty = !content && isStreaming
 
   return (
@@ -68,19 +67,6 @@ function AssistantMessage({ message }: { message: ChatMessageType }) {
         <div className="flex-1 min-w-0">
           {/* 消息卡片 */}
           <div className="bg-white border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
-            {/* 状态行：缓存徽章 */}
-            {from_cache && !isStreaming && (
-              <div className="flex items-center gap-1.5 mb-2">
-                <span className="inline-flex items-center gap-1 bg-green-50 text-green-600 text-[10px] px-2 py-0.5 rounded-full border border-green-200">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  {cache_level === 'exact' ? '精确缓存' : cache_level === 'semantic' ? '语义缓存' : '缓存命中'}
-                </span>
-              </div>
-            )}
-
             {/* 内容区域 */}
             {isEmpty ? (
               // 正在思考：三个点动画

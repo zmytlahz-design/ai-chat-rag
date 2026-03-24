@@ -3,35 +3,16 @@
 # 负责：创建 app 实例、注册中间件、挂载路由、生命周期管理
 # ==================================================
 
-import json
-import os
-import re
-import time
 from contextlib import asynccontextmanager  # 用于定义异步上下文管理器（lifespan）
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware  # 跨域中间件
 
 from config import settings      # 全局配置
-from database import init_db, AsyncSessionLocal  # 数据库初始化函数
-from services.redis_service import redis_service  # Redis 服务（用于关闭连接）
+from database import init_db  # 数据库初始化函数
 
 # 导入所有路由模块
 from routers import knowledge_base, document, chat, conversation
-
-# #region agent log
-def _debug_log(message: str, data: dict, hypothesis_id: str, run_id: str = ""):
-    try:
-        log_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "debug-4ad711.log"))
-        payload = {"sessionId": "4ad711", "location": "main.py", "message": message, "data": data, "timestamp": int(time.time() * 1000), "hypothesisId": hypothesis_id}
-        if run_id:
-            payload["runId"] = run_id
-        with open(log_path, "a", encoding="utf-8") as f:
-            f.write(json.dumps(payload, ensure_ascii=False) + "\n")
-    except Exception:
-        pass
-# #endregion
-
 
 # --------------------------------------------------
 # 1. 应用生命周期管理（lifespan）
@@ -52,26 +33,10 @@ async def lifespan(app: FastAPI):
     await init_db()
     print("✅ 数据库表初始化完成")
 
-    # #region agent log
-    try:
-        from sqlalchemy import select, func
-        from models.knowledge_base import KnowledgeBase
-        async with AsyncSessionLocal() as sess:
-            r = await sess.execute(select(func.count(KnowledgeBase.id)))
-            kb_count = r.scalar() or 0
-        db_masked = re.sub(r"://[^@]+@", "://***@", settings.DATABASE_URL)
-        _debug_log("startup kb count", {"count": kb_count, "database_masked": db_masked}, "H2,H4,H5")
-    except Exception as e:
-        _debug_log("startup kb count error", {"error": str(e)}, "H4")
-    # #endregion
-
     yield  # 应用正常运行期间停在这里
 
     # ---- 关闭时执行 ----
     print("👋 应用正在关闭，清理资源...")
-    # 关闭 Redis 连接池，释放网络资源
-    await redis_service.close()
-    print("✅ Redis 连接已关闭")
 
 
 # --------------------------------------------------

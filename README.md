@@ -1,7 +1,7 @@
 # AI 知识库对话系统
 <img width="1920" height="945" alt="image" src="https://github.com/user-attachments/assets/29718453-55c4-4687-8cd3-da7074472388" />
 
-基于 RAG（检索增强生成）技术的多轮对话知识库系统。上传 PDF/TXT/Markdown 文档，通过向量检索 + LLM 实现智能问答，支持多知识库管理、对话历史、SSE 流式输出和多级 Redis 缓存。
+基于 RAG（检索增强生成）技术的多轮对话知识库系统。上传 PDF/TXT/Markdown 文档，通过向量检索 + LLM 实现智能问答，支持多知识库管理、对话历史和 SSE 流式输出。
 
 ## 技术文章（GitHub 文档）
 
@@ -28,7 +28,6 @@
 | UI 样式 | Tailwind CSS |
 | 状态管理 | Zustand |
 | 向量数据库 | PostgreSQL 15 + pgvector 扩展 |
-| 缓存 | Redis 7（语义缓存 + 精确缓存 + 热门统计）|
 | ORM | SQLAlchemy 2.x（asyncpg 异步驱动）|
 | LLM | 智谱 BigModel（OpenAI 兼容格式）|
 | Embedding | 智谱 AI（OpenAI 兼容）|
@@ -72,10 +71,10 @@ docker-compose up -d
 ```
 
 首次启动会自动：
-- 拉取 `pgvector/pgvector:pg15`、`redis:7-alpine`、`nginx:1.25-alpine` 镜像
+- 拉取 `pgvector/pgvector:pg15`、`nginx:1.25-alpine` 镜像
 - 构建后端（Python 依赖约需 2-3 分钟）
 - 构建前端（Node.js 编译约需 1-2 分钟）
-- 等待 PostgreSQL 和 Redis 健康就绪后再启动后端
+- 等待 PostgreSQL 健康就绪后再启动后端
 
 ### 4. 访问服务
 
@@ -84,8 +83,8 @@ docker-compose up -d
 | 地址 | 说明 |
 |------|------|
 | http://localhost:3080 | 前端界面（React）|
-| http://localhost:3080/api/v1/docs | FastAPI 交互文档（Swagger UI）|
-| http://localhost:3080/api/v1/redoc | FastAPI 文档（ReDoc）|
+| http://localhost:3080/docs | FastAPI 交互文档（Swagger UI）|
+| http://localhost:3080/redoc | FastAPI 文档（ReDoc）|
 | http://localhost:3080/health | Nginx 健康检查 |
 
 ### 5. 常用命令
@@ -149,7 +148,7 @@ git push -u origin main
 
 ```
 ai-chat-rag/
-├── docker-compose.yml          # 5 服务编排配置
+├── docker-compose.yml          # 4 服务编排配置
 ├── .env.example                # 环境变量模板（复制为 .env 后填写）
 ├── .gitignore
 ├── README.md
@@ -166,15 +165,14 @@ ai-chat-rag/
 │   │   ├── conversation.py     # 对话表
 │   │   └── message.py          # 消息表
 │   ├── routers/                # API 路由层
-│   │   ├── knowledge_base.py   # 知识库 CRUD + 热门问题 + 缓存管理
+│   │   ├── knowledge_base.py   # 知识库 CRUD
 │   │   ├── document.py         # 文档上传/列表/删除
 │   │   ├── chat.py             # 流式对话 + 普通对话
 │   │   └── conversation.py     # 对话历史管理
 │   └── services/               # 业务逻辑层
 │       ├── document_service.py # 文档解析 → 切块 → 向量化 → 存储
 │       ├── rag_service.py      # RAG 链路（问题压缩 + 检索 + LLM 生成）
-│       ├── chat_service.py     # 对话管理 + 多级缓存调度
-│       └── redis_service.py    # 精确缓存 + 语义缓存 + 热门统计
+│       └── chat_service.py     # 对话管理
 │
 ├── frontend/                   # React 前端
 │   ├── Dockerfile              # 多阶段构建（Node → Nginx）
@@ -198,7 +196,7 @@ ai-chat-rag/
 
 ## API 接口文档概览
 
-> 完整交互文档：http://localhost/api/v1/docs
+> 完整交互文档：http://localhost/docs
 
 ### 知识库管理 `/api/v1/knowledge-bases`
 
@@ -209,9 +207,6 @@ ai-chat-rag/
 | GET | `/{kb_id}` | 获取知识库详情 |
 | PUT | `/{kb_id}` | 更新知识库信息 |
 | DELETE | `/{kb_id}` | 删除知识库（含文档和对话）|
-| GET | `/{kb_id}/hot-questions` | 热门问题 Top-N |
-| DELETE | `/{kb_id}/hot-questions` | 重置热门问题统计 |
-| DELETE | `/{kb_id}/cache` | 清空 RAG 答案缓存 |
 
 ### 文档管理 `/api/v1/documents`
 
@@ -243,7 +238,7 @@ ai-chat-rag/
 data: {"type": "start", "conversation_id": 5}
 data: {"type": "token", "content": "根"}
 data: {"type": "token", "content": "据"}
-data: {"type": "done", "conversation_id": 5, "message_id": 23, "sources": [...], "from_cache": false}
+data: {"type": "done", "conversation_id": 5, "message_id": 23, "sources": [...]}
 ```
 
 ### 对话历史 `/api/v1/conversations`
@@ -257,24 +252,19 @@ data: {"type": "done", "conversation_id": 5, "message_id": 23, "sources": [...],
 
 ---
 
-## 缓存策略说明
+## RAG 处理流程
 
-系统实现三级缓存，按优先级依次命中：
+系统采用基础 RAG 三步链路：
 
 ```
 用户提问
     ↓
-L1 精确缓存（Redis String，MD5 hash，TTL 24h）
-    ↓ 未命中
-L2 语义缓存（Redis Hash，余弦相似度 > 0.95，TTL 24h）
-    ↓ 未命中
-L3 RAG 完整链路（向量检索 + 智谱 GLM）
-    ↓ 生成后存入 L1 + L2
+问题浓缩（可选，多轮场景）
+    ↓
+向量检索（pgvector）
+    ↓
+LLM 结合 context 生成答案
 ```
-
-- **L1 精确匹配**：完全相同的问题直接命中，响应 < 10ms
-- **L2 语义相似**：语义近似的问题命中，避免重复调用 LLM
-- **热门问题统计**：使用 Redis Sorted Set 记录问题频次，提供 Top-N 分析
 
 ---
 
@@ -283,7 +273,7 @@ L3 RAG 完整链路（向量检索 + 智谱 GLM）
 不使用 Docker，本地直接运行：
 
 ```bash
-# 后端（需要本地 Python 3.11 + PostgreSQL + Redis）
+# 后端（需要本地 Python 3.11 + PostgreSQL）
 cd backend
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
@@ -304,7 +294,6 @@ npm run dev   # 访问 http://localhost:5173
 | `POSTGRES_PASSWORD` | ✅ | — | 数据库密码 |
 | `POSTGRES_USER` | | `rag_user` | 数据库用户名 |
 | `POSTGRES_DB` | | `rag_db` | 数据库名 |
-| `REDIS_PASSWORD` | | 空（不认证）| Redis 密码 |
 | `LLM_API_KEY` | ✅ | — | LLM API 密钥 |
 | `LLM_BASE_URL` | | 智谱 BigModel | LLM 接口地址（如 `https://open.bigmodel.cn/api/paas/v4`）|
 | `LLM_MODEL_NAME` | | `glm-4-flash` | LLM 模型名 |

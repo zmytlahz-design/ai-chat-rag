@@ -11,7 +11,6 @@ import { chatApi } from '../api/chat'
  *   - localId: React key，保证 DOM 稳定，避免 map 用 index 导致的问题
  *   - isStreaming: 当前消息是否正在流式输出（显示打字动画）
  *   - sources: 引用来源（assistant 消息完成后赋值）
- *   - from_cache: 是否来自 Redis 缓存（用于展示缓存标识）
  */
 export interface ChatMessage {
   localId: string           // 本地唯一 ID，用作 React key
@@ -19,8 +18,6 @@ export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
   sources?: SourceDocument[]
-  from_cache?: boolean
-  cache_level?: string
   isStreaming?: boolean      // 是否正在流式输出
   created_at: string
 }
@@ -237,8 +234,6 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
                           isStreaming: false,
                           dbId: doneEvent.message_id ?? undefined,
                           sources: doneEvent.sources,
-                          from_cache: doneEvent.from_cache,
-                          cache_level: doneEvent.cache_level,
                         }
                       : m,
                   ),

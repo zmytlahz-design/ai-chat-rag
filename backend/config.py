@@ -29,16 +29,6 @@ class Settings(BaseSettings):
         description="PostgreSQL 异步连接字符串"
     )
 
-    # ---------- Redis 配置 ----------
-    REDIS_URL: str = Field(
-        default="redis://localhost:6379/0",
-        description="Redis 连接字符串，/0 表示使用第 0 号数据库"
-    )
-    REDIS_EXPIRE_SECONDS: int = Field(
-        default=3600,
-        description="Redis 缓存默认过期时间（秒），默认 1 小时"
-    )
-
     # ---------- LLM 配置（智谱 BigModel，OpenAI 兼容格式）----------
     LLM_API_KEY: str = Field(
         default="your-zhipu-api-key",

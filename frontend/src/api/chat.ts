@@ -54,7 +54,6 @@ export interface ChatNormalResponse {
   content: string
   sources: SourceDocument[]
   token_count: number | null
-  from_cache: boolean
 }
 
 // ==================== SSE 事件类型（流式对话）====================
@@ -64,8 +63,6 @@ export interface ChatNormalResponse {
 export interface SSEStartEvent {
   type: 'start'
   conversation_id: number
-  from_cache?: boolean
-  cache_level?: string
 }
 
 /** Token 块事件：携带单个文字片段 */
@@ -80,8 +77,6 @@ export interface SSEDoneEvent {
   conversation_id: number
   message_id: number | null
   sources: SourceDocument[]
-  from_cache?: boolean
-  cache_level?: string
 }
 
 /** 错误事件 */

@@ -23,20 +23,6 @@ export interface KnowledgeBaseCreateInput {
   description?: string
 }
 
-/** 热门问题单项 */
-export interface HotQuestionItem {
-  rank: number
-  question: string
-  count: number
-}
-
-/** 热门问题列表响应 */
-export interface HotQuestionsResponse {
-  kb_id: number
-  total_questions: number
-  items: HotQuestionItem[]
-}
-
 // ==================== API 函数 ====================
 
 const BASE = '/api/v1/knowledge-bases'
@@ -65,20 +51,5 @@ export const knowledgeApi = {
   /** 删除知识库（同时删除其下所有文档和对话） */
   delete(id: number): Promise<void> {
     return apiClient.delete(`${BASE}/${id}`).then(() => undefined)
-  },
-
-  /** 获取知识库热门问题 Top-N */
-  getHotQuestions(kbId: number, topN = 10): Promise<HotQuestionsResponse> {
-    return apiClient.get(`${BASE}/${kbId}/hot-questions`, { params: { top_n: topN } }).then(r => r.data)
-  },
-
-  /** 重置热门问题统计 */
-  resetHotQuestions(kbId: number): Promise<void> {
-    return apiClient.delete(`${BASE}/${kbId}/hot-questions`).then(() => undefined)
-  },
-
-  /** 清空知识库 RAG 答案缓存 */
-  clearCache(kbId: number): Promise<void> {
-    return apiClient.delete(`${BASE}/${kbId}/cache`).then(() => undefined)
   },
 }

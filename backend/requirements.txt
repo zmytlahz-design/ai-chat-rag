@@ -16,9 +16,6 @@ alembic==1.14.0               # 数据库迁移工具
 pydantic==2.10.4              # 数据校验框架（v2 版本，性能更好）
 pydantic-settings==2.7.0      # 从环境变量/dotenv 读取配置，基于 Pydantic v2
 
-# ---------- 缓存 ----------
-redis==5.2.1                  # Redis 客户端，支持异步操作
-
 # ---------- LangChain 相关 ----------
 langchain==0.3.14             # 核心框架：链路编排、记忆、检索等
 langchain-openai==0.3.0       # LangChain 的 OpenAI 适配器（OpenAI 兼容端点，如智谱 BigModel）

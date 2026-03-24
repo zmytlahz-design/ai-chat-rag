@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, MoreHorizontal, Settings, Trash2, MessageSquare, FileText, BarChart3, Database } from 'lucide-react'
+import { Plus, MoreHorizontal, Settings, Trash2, MessageSquare, FileText, Database } from 'lucide-react'
 
 import { useKnowledgeStore } from '@/stores/useKnowledgeStore'
-import { knowledgeApi, type KnowledgeBase, type HotQuestionItem } from '@/api/knowledge'
+import { type KnowledgeBase } from '@/api/knowledge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -47,12 +47,6 @@ export default function KnowledgeBasePage() {
   const [name, setName] = useState('')
   const [desc, setDesc] = useState('')
   const [loading, setLoading] = useState(false)
-
-  // 热门问题
-  const [hotOpen, setHotOpen] = useState(false)
-  const [hotQuestions, setHotQuestions] = useState<HotQuestionItem[]>([])
-  const [hotLoading, setHotLoading] = useState(false)
-  const [currentHotKb, setCurrentHotKb] = useState<string>('')
 
   useEffect(() => {
     fetchKbs()
@@ -99,30 +93,6 @@ export default function KnowledgeBasePage() {
     }
   }
 
-  const handleViewHot = async (kbId: number, kbName: string) => {
-    setCurrentHotKb(kbName)
-    setHotOpen(true)
-    setHotLoading(true)
-    try {
-      const res = await knowledgeApi.getHotQuestions(kbId)
-      setHotQuestions(res.items)
-    } catch (err) {
-      toast({ variant: "destructive", title: "获取失败", description: (err as Error).message })
-    } finally {
-      setHotLoading(false)
-    }
-  }
-
-  const handleClearCache = async (kbId: number) => {
-    if (!confirm('确认清空 RAG 缓存？')) return
-    try {
-      await knowledgeApi.clearCache(kbId)
-      toast({ title: "缓存已清空" })
-    } catch (err) {
-      toast({ variant: "destructive", title: "操作失败", description: (err as Error).message })
-    }
-  }
-
   return (
     <div className="min-h-screen bg-muted/30 p-8">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -166,12 +136,6 @@ export default function KnowledgeBasePage() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => openEdit(kb)}>
                         <Settings className="mr-2 h-4 w-4" /> 编辑信息
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleViewHot(kb.id, kb.name)}>
-                        <BarChart3 className="mr-2 h-4 w-4" /> 热门问题
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleClearCache(kb.id)}>
-                        <Database className="mr-2 h-4 w-4" /> 清空缓存
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem 
@@ -243,35 +207,6 @@ export default function KnowledgeBasePage() {
         </DialogContent>
       </Dialog>
 
-      {/* 热门问题 Modal */}
-      <Dialog open={hotOpen} onOpenChange={setHotOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>热门问题 - {currentHotKb}</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            {hotLoading ? (
-              <div className="text-center text-sm text-muted-foreground">加载中...</div>
-            ) : hotQuestions.length === 0 ? (
-              <div className="text-center text-sm text-muted-foreground">暂无数据</div>
-            ) : (
-              <div className="space-y-4">
-                {hotQuestions.map((q) => (
-                  <div key={q.rank} className="flex items-start gap-4 p-3 rounded-lg bg-muted/50">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                      {q.rank}
-                    </span>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium leading-none">{q.question}</p>
-                      <p className="text-xs text-muted-foreground">提问 {q.count} 次</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

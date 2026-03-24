@@ -6,7 +6,7 @@ import type { SSEEvent } from '../api/chat'
 /** useSSE 的回调选项 */
 export interface SSECallbacks {
   /** 流开始（收到 start 事件）时触发 */
-  onStart?: (conversationId: number, fromCache?: boolean) => void
+  onStart?: (conversationId: number) => void
   /** 收到 token 片段时触发（用于逐字渲染） */
   onToken?: (content: string) => void
   /** 流结束时触发（携带完整 sources） */
@@ -118,7 +118,7 @@ export function useSSE(): UseSSEReturn {
               // 根据事件类型调用对应回调
               switch (event.type) {
                 case 'start':
-                  callbacks.onStart?.(event.conversation_id, event.from_cache)
+                  callbacks.onStart?.(event.conversation_id)
                   break
 
                 case 'token':

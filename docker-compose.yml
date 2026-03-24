@@ -11,8 +11,7 @@
 #   │   /api/* → [backend:8000]  FastAPI              │
 #   │      /*  → [frontend:80]   React 静态文件        │
 #   │                  ↓                              │
-#   │  [backend] ← 依赖 ─┬─ [postgres:5432]           │
-#   │                    └─ [redis:6379]              │
+#   │  [backend] ← 依赖 [postgres:5432]               │
 #   └─────────────────────────────────────────────────┘
 #
 # 使用方式：
@@ -55,40 +54,8 @@ services:
     restart: unless-stopped  # 除非手动停止，否则崩溃后自动重启
 
   # ============================================================================
-  # redis：缓存服务（语义缓存 / 精确缓存 / 热门问题统计）
-  # 使用 Alpine 变体，体积小。生产环境建议开启 AOF 持久化。
-  # ============================================================================
-  redis:
-    image: redis:7-alpine
-    container_name: rag_redis
-    # 带密码启动（密码从 .env 读取；若 REDIS_PASSWORD 为空则不启用认证）
-    command: >
-      sh -c '
-        if [ -n "${REDIS_PASSWORD}" ]; then
-          redis-server --requirepass "${REDIS_PASSWORD}" --appendonly yes
-        else
-          redis-server --appendonly yes
-        fi
-      '
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}  # 传入 shell 脚本使用
-    volumes:
-      # AOF 持久化文件，服务重启后不丢失缓存数据
-      - redis_data:/data
-    healthcheck:
-      # redis-cli ping：返回 PONG 表示服务正常
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout:  3s
-      retries:  5
-      start_period: 5s
-    networks:
-      - rag_network
-    restart: unless-stopped
-
-  # ============================================================================
   # backend：FastAPI 后端服务
-  # 依赖 postgres 和 redis 健康就绪后才启动，避免连接失败报错
+  # 依赖 postgres 健康就绪后才启动，避免连接失败报错
   # ============================================================================
   backend:
     build:
@@ -102,10 +69,6 @@ services:
       # 同步驱动 URL（PGVector 依赖，使用 psycopg3）
       SYNC_DATABASE_URL: "postgresql+psycopg://${POSTGRES_USER:-rag_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-rag_db}"
 
-      # --- Redis 连接 ---
-      # 若密码为空，URL 格式为 redis://redis:6379/0（无 @: 部分）
-      REDIS_URL: "${REDIS_URL_OVERRIDE:-redis://:${REDIS_PASSWORD:-}@redis:6379/0}"
-
       # --- LLM 配置（智谱 GLM 或其他 OpenAI 兼容 API）---
       LLM_API_KEY:       ${LLM_API_KEY}
       LLM_BASE_URL:      ${LLM_BASE_URL:-https://open.bigmodel.cn/api/paas/v4}
@@ -117,14 +80,13 @@ services:
       EMBEDDING_MODEL_NAME:    ${EMBEDDING_MODEL_NAME:-embedding-3}
 
       # --- 应用配置 ---
+      DEBUG:           ${DEBUG:-true}
       CORS_ORIGINS:    '["http://localhost", "http://localhost:3080"]'
       CHUNK_SIZE:      ${CHUNK_SIZE:-500}
       CHUNK_OVERLAP:   ${CHUNK_OVERLAP:-50}
     depends_on:
       postgres:
         condition: service_healthy  # 等待 postgres healthcheck 通过
-      redis:
-        condition: service_healthy  # 等待 redis healthcheck 通过
     networks:
       - rag_network
     restart: unless-stopped
@@ -184,5 +146,3 @@ networks:
 volumes:
   postgres_data:
     name: rag_postgres_data  # 固定卷名
-  redis_data:
-    name: rag_redis_data

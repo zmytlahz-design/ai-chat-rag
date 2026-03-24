@@ -26,6 +26,12 @@ if not exist ".env" (
     exit /b 0
 )
 
+set "APP_PORT=3080"
+for /f "usebackq tokens=1,* delims==" %%A in (".env") do (
+    if /i "%%A"=="NGINX_PORT" set "APP_PORT=%%B"
+)
+if "%APP_PORT%"=="" set "APP_PORT=3080"
+
 echo [1/3] 正在启动服务...
 echo.
 docker compose up -d
@@ -58,8 +64,8 @@ echo.
 echo [3/3] 启动完成！
 echo ============================================
 echo.
-echo   前端界面:  http://localhost:3080
-echo   API 文档:  http://localhost:3080/api/v1/docs
+echo   前端界面:  http://localhost:%APP_PORT%
+echo   API 文档:  http://localhost:%APP_PORT%/docs
 echo.
 echo   查看日志:  docker compose logs -f
 echo   停止服务:  docker compose down
@@ -67,6 +73,6 @@ echo ============================================
 echo.
 
 :: 自动打开浏览器（端口与 .env 中 NGINX_PORT 一致）
-start http://localhost:3080
+start http://localhost:%APP_PORT%
 
 pause
