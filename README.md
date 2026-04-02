@@ -33,7 +33,7 @@
 | Embedding | 智谱 AI（OpenAI 兼容）|
 | RAG 框架 | LangChain + langchain-postgres（PGVector）|
 | 流式传输 | SSE（Server-Sent Events）|
-| 部署 | Docker + docker-compose + Nginx |
+| 部署 | Docker + docker-compose  |
 
 ## 快速启动
 
@@ -64,6 +64,8 @@ LLM_API_KEY=sk-your-api-key              # LLM 接口密钥
 EMBEDDING_API_KEY=sk-your-api-key        # Embedding 接口密钥
 ```
 
+`docker-compose.yml` 将 PostgreSQL 映射到宿主机：`${POSTGRES_PORT:-5432}:5432`（变量见 `.env.example`）。本机用客户端连接时：主机 `localhost`，端口为 `.env` 中的 `POSTGRES_PORT`（默认 `5432`），库名 `POSTGRES_DB`，用户 `POSTGRES_USER`，密码 `POSTGRES_PASSWORD`。修改映射后需重新创建 postgres 容器才会生效，例如：`docker-compose up -d --force-recreate postgres`。
+
 ### 3. 一键启动
 
 ```bash
@@ -71,21 +73,23 @@ docker-compose up -d
 ```
 
 首次启动会自动：
-- 拉取 `pgvector/pgvector:pg15`、`nginx:1.25-alpine` 镜像
+- 拉取 `pgvector/pgvector:pg15` 等基础镜像
 - 构建后端（Python 依赖约需 2-3 分钟）
-- 构建前端（Node.js 编译约需 1-2 分钟）
+- 构建前端（Node.js 编译约需 1-2 分钟；前端生产镜像基于 `nginx:alpine` 托管静态资源并转发 `/api`）
 - 等待 PostgreSQL 健康就绪后再启动后端
 
 ### 4. 访问服务
 
-默认端口为 **3080**（可在 `.env` 中设置 `NGINX_PORT`）。若使用默认配置：
+对外 HTTP 端口由根目录 `.env` 中的 `FRONTEND_PORT` 决定：`docker-compose.yml` 为 `${FRONTEND_PORT:-80}:80`（映射到 `frontend` 容器）。未设置时默认 **80**（与 `.env.example` 一致）。下表以 `80` 为例；若改为 `3080` 等，请替换下表中的端口。
 
 | 地址 | 说明 |
 |------|------|
-| http://localhost:3080 | 前端界面（React）|
-| http://localhost:3080/docs | FastAPI 交互文档（Swagger UI）|
-| http://localhost:3080/redoc | FastAPI 文档（ReDoc）|
-| http://localhost:3080/health | Nginx 健康检查 |
+| http://localhost:80 | Web 界面（静态资源） |
+| http://localhost:80/docs | Swagger UI（经前端容器转发至 backend） |
+| http://localhost:80/redoc | ReDoc（同上） |
+| http://localhost:80/health | 健康检查（由前端容器直接返回 JSON） |
+
+本地单独跑后端（`uvicorn`，不经过前端容器）时，API 文档一般为 `http://localhost:8000/docs`。
 
 ### 5. 常用命令
 
@@ -117,7 +121,7 @@ docker exec -it rag_postgres psql -U rag_user -d rag_db
 
 ### 6. 初始化使用
 
-1. 打开 http://localhost:3080（或你配置的端口）
+1. 打开 `http://localhost:<FRONTEND_PORT>`（与 `.env` 一致）
 2. 点击"知识库管理" → 创建第一个知识库
 3. 进入"文档管理" → 拖拽上传 PDF/TXT/MD 文件
 4. 等待文档处理完成（状态变为"已完成"）
@@ -148,7 +152,7 @@ git push -u origin main
 
 ```
 ai-chat-rag/
-├── docker-compose.yml          # 4 服务编排配置
+├── docker-compose.yml          # postgres / backend / frontend 编排
 ├── .env.example                # 环境变量模板（复制为 .env 后填写）
 ├── .gitignore
 ├── README.md
@@ -175,8 +179,8 @@ ai-chat-rag/
 │       └── chat_service.py     # 对话管理
 │
 ├── frontend/                   # React 前端
-│   ├── Dockerfile              # 多阶段构建（Node → Nginx）
-│   ├── nginx.conf              # 前端容器 Nginx 配置（SPA 路由回退）
+│   ├── Dockerfile              # 多阶段构建（Node → 静态托管镜像）
+│   ├── nginx.conf              # 前端容器：静态资源 + `/api` 等转发至 backend
 │   ├── package.json
 │   ├── vite.config.ts          # Vite 配置（开发代理）
 │   └── src/
@@ -188,15 +192,13 @@ ai-chat-rag/
 │       ├── pages/              # 页面组件
 │       └── router/             # React Router 路由配置
 │
-└── nginx/
-    └── nginx.conf              # 外层反向代理配置（统一入口）
 ```
 
 ---
 
 ## API 接口文档概览
 
-> 完整交互文档：http://localhost/docs
+完整交互文档（经 `FRONTEND_PORT` 访问时）：`http://localhost:<FRONTEND_PORT>/docs`。仅本地后端时：`http://localhost:8000/docs`。
 
 ### 知识库管理 `/api/v1/knowledge-bases`
 
@@ -294,13 +296,14 @@ npm run dev   # 访问 http://localhost:5173
 | `POSTGRES_PASSWORD` | ✅ | — | 数据库密码 |
 | `POSTGRES_USER` | | `rag_user` | 数据库用户名 |
 | `POSTGRES_DB` | | `rag_db` | 数据库名 |
+| `POSTGRES_PORT` | | `5432` | 宿主机映射到容器 5432，供本机客户端连接 |
 | `LLM_API_KEY` | ✅ | — | LLM API 密钥 |
 | `LLM_BASE_URL` | | 智谱 BigModel | LLM 接口地址（如 `https://open.bigmodel.cn/api/paas/v4`）|
 | `LLM_MODEL_NAME` | | `glm-4-flash` | LLM 模型名 |
 | `EMBEDDING_API_KEY` | ✅ | — | Embedding API 密钥 |
 | `EMBEDDING_BASE_URL` | | 智谱 AI | Embedding 接口地址 |
 | `EMBEDDING_MODEL_NAME` | | `embedding-3` | Embedding 模型名 |
-| `NGINX_PORT` | | `80` | 对外暴露端口 |
+| `FRONTEND_PORT` | | `80` | 宿主机映射到 frontend 容器 80（`${FRONTEND_PORT:-80}:80`）|
 | `CHUNK_SIZE` | | `500` | 文档分块大小（字符数）|
 | `CHUNK_OVERLAP` | | `50` | 分块重叠大小（字符数）|
 
@@ -315,7 +318,13 @@ npm run dev   # 访问 http://localhost:5173
 > 检查 Embedding API 配置是否正确：`docker-compose logs backend | grep -i embedding`
 
 **Q: SSE 流式对话没有逐字效果，一次性返回？**
-> 检查是否在 Nginx 和浏览器之间有额外代理开启了缓冲。生产环境确认 `proxy_buffering off` 生效。
+> 若前面还有一层反向代理，需关闭其对响应体的缓冲；本仓库中 `frontend/nginx.conf` 已对 `/api/v1/chat/stream` 设置 `proxy_buffering off`。
 
 **Q: 80 端口被占用？**
-> 在 `.env` 中设置 `NGINX_PORT=8080`，然后重启：`docker-compose up -d`
+> 在 `.env` 中修改 `FRONTEND_PORT`（例如 `3080`），然后执行 `docker-compose up -d`。
+
+**Q: 升级后 Web 端口配置不生效？**
+> 编排已改用 `FRONTEND_PORT`（映射 `frontend` 容器），若 `.env` 仍为旧的 `NGINX_PORT`，请改名为 `FRONTEND_PORT` 后重新 `docker-compose up -d`。
+
+**Q: 本机 Navicat 连 `localhost:5432` 被拒绝？**
+> 执行 `docker-compose ps`，确认 `postgres` 一行包含 `0.0.0.0:5432->5432`（或你配置的 `POSTGRES_PORT`）。修改 `docker-compose.yml` 或 `POSTGRES_PORT` 后需重建：`docker-compose up -d --force-recreate postgres`。本机若已有程序占用 5432，请把 `.env` 中 `POSTGRES_PORT` 改为其他端口并重建。

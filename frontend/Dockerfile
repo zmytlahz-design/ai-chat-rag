@@ -2,7 +2,7 @@
 # frontend/Dockerfile — React 前端多阶段构建
 #
 # 阶段一（builder）：Node.js 环境，执行 npm install + npm run build
-# 阶段二（production）：仅包含 Nginx + 构建产物，体积极小（约 25MB）
+# 阶段二（production）：Nginx 托管静态文件，并按 nginx.conf 将 /api 转发到 backend
 #
 # 多阶段构建的优点：
 #   最终镜像不含 Node.js / node_modules，安全性高，体积比单阶段小 90%+
@@ -14,7 +14,7 @@
 FROM node:20-alpine AS builder
 
 # 设置构建时可注入的环境变量
-# VITE_API_BASE_URL：API 基础地址，留空时由 Vite 代理（开发）或 Nginx 反代（生产）处理
+# VITE_API_BASE_URL：留空则浏览器走同源 /api（生产由本镜像内 nginx 转发至 backend）
 ARG VITE_API_BASE_URL=""
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 

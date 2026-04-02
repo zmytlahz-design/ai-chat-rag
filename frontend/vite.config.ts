@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 
 // Vite 配置
 // 开发模式下通过 proxy 把 /api 请求转发到后端，绕开浏览器跨域限制
-// 生产环境由 Nginx/反向代理 处理跨域，不需要此配置
+// 生产 Docker 下由 frontend 容器内转发 /api，同源无需此处代理
 export default defineConfig({
   plugins: [react()],
 
