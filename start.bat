@@ -7,7 +7,6 @@ echo   AI 知识库对话系统 - 一键启动脚本
 echo ============================================
 echo.
 
-:: 检查 Docker 是否运行
 docker info >nul 2>&1
 if %errorlevel% neq 0 (
     echo [错误] Docker 未运行，请先启动 Docker Desktop
@@ -15,7 +14,6 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-:: 检查 .env 文件
 if not exist ".env" (
     echo [提示] 未检测到 .env 文件，正在从模板创建...
     copy .env.example .env >nul
@@ -26,11 +24,17 @@ if not exist ".env" (
     exit /b 0
 )
 
-set "APP_PORT=3080"
-for /f "usebackq tokens=1,* delims==" %%A in (".env") do (
-    if /i "%%A"=="NGINX_PORT" set "APP_PORT=%%B"
+:: 与 docker-compose 中 FRONTEND_PORT 一致；兼容旧变量名 NGINX_PORT
+set "APP_PORT="
+set "LEGACY_PORT="
+for /f "usebackq eol=# tokens=1,* delims==" %%A in (".env") do (
+    if /i "%%~A"=="FRONTEND_PORT" set "APP_PORT=%%B"
+    if /i "%%~A"=="NGINX_PORT" set "LEGACY_PORT=%%B"
 )
-if "%APP_PORT%"=="" set "APP_PORT=3080"
+if defined APP_PORT goto :port_ok
+if defined LEGACY_PORT set "APP_PORT=%LEGACY_PORT%"
+if not defined APP_PORT set "APP_PORT=80"
+:port_ok
 
 echo [1/3] 正在启动服务...
 echo.
@@ -52,12 +56,12 @@ echo.
 echo [2/3] 等待服务就绪...
 timeout /t 8 /nobreak >nul
 
-:: 检查后端是否正常（容器内 nginx 监听 80，宿主机访问用 NGINX_PORT 如 3080）
-docker exec rag_nginx wget -qO- http://127.0.0.1:80/api/v1/knowledge-bases >nul 2>&1
+:: 探测 frontend 容器（对外端口由 FRONTEND_PORT 映射，容器内仍为 80）
+docker exec rag_frontend wget -qO- http://127.0.0.1:80/health >nul 2>&1
 if %errorlevel% equ 0 (
-    echo [OK] 后端 API 正常
+    echo [OK] 服务健康检查通过
 ) else (
-    echo [提示] 后端仍在启动中，请稍等几秒后刷新页面
+    echo [提示] 服务仍在启动中，请稍等几秒后刷新页面
 )
 
 echo.
@@ -72,7 +76,6 @@ echo   停止服务:  docker compose down
 echo ============================================
 echo.
 
-:: 自动打开浏览器（端口与 .env 中 NGINX_PORT 一致）
 start http://localhost:%APP_PORT%
 
 pause

@@ -3,6 +3,7 @@
 # 负责：创建 app 实例、注册中间件、挂载路由、生命周期管理
 # ==================================================
 
+import logging
 from contextlib import asynccontextmanager  # 用于定义异步上下文管理器（lifespan）
 
 from fastapi import FastAPI
@@ -13,6 +14,8 @@ from database import init_db  # 数据库初始化函数
 
 # 导入所有路由模块
 from routers import knowledge_base, document, chat, conversation
+
+logger = logging.getLogger(__name__)
 
 # --------------------------------------------------
 # 1. 应用生命周期管理（lifespan）
@@ -27,16 +30,16 @@ async def lifespan(app: FastAPI):
     yield 之后的代码在应用关闭时执行（shutdown）。
     """
     # ---- 启动时执行 ----
-    print(f"🚀 {settings.APP_NAME} v{settings.APP_VERSION} 正在启动...")
+    logger.info("%s v%s 正在启动...", settings.APP_NAME, settings.APP_VERSION)
 
     # 初始化数据库：创建所有表（如果不存在）
     await init_db()
-    print("✅ 数据库表初始化完成")
+    logger.info("数据库表初始化完成")
 
     yield  # 应用正常运行期间停在这里
 
     # ---- 关闭时执行 ----
-    print("👋 应用正在关闭，清理资源...")
+    logger.info("应用正在关闭，清理资源...")
 
 
 # --------------------------------------------------

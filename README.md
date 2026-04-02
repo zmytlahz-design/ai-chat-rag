@@ -72,6 +72,8 @@ EMBEDDING_API_KEY=sk-your-api-key        # Embedding 接口密钥
 docker-compose up -d
 ```
 
+Windows 可在项目根目录双击 **`start.bat`**（依赖已安装的 Docker Desktop；会读取 `.env` 中的 `FRONTEND_PORT`，并兼容旧变量名 `NGINX_PORT`）。
+
 首次启动会自动：
 - 拉取 `pgvector/pgvector:pg15` 等基础镜像
 - 构建后端（Python 依赖约需 2-3 分钟）
@@ -153,6 +155,7 @@ git push -u origin main
 ```
 ai-chat-rag/
 ├── docker-compose.yml          # postgres / backend / frontend 编排
+├── start.bat                   # Windows 下一键启动（可选）
 ├── .env.example                # 环境变量模板（复制为 .env 后填写）
 ├── .gitignore
 ├── README.md
