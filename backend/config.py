@@ -79,6 +79,24 @@ class Settings(BaseSettings):
         description="相邻分块的重叠字符数，避免语义在分块边界断裂"
     )
 
+    # ---------- 工具调用 / 严格证据模式 ----------
+    ENABLE_TOOLS: bool = Field(
+        default=True,
+        description="是否启用工具调用能力（rag_tools 模式）"
+    )
+    STRICT_GROUNDING: bool = Field(
+        default=True,
+        description="是否开启严格证据模式：无证据不回答，不允许编造"
+    )
+    RAG_MIN_SCORE: float = Field(
+        default=0.55,
+        description="RAG 证据最小相关度阈值，低于该值判定为证据不足"
+    )
+    TOOL_TIMEOUT_SEC: int = Field(
+        default=8,
+        description="单次工具调用超时时间（秒）"
+    )
+
     # ---------- CORS 配置 ----------
     # 允许跨域请求的前端地址列表，多个地址用逗号分隔
     CORS_ORIGINS: list[str] = Field(

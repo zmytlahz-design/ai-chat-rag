@@ -13,6 +13,10 @@ export interface SSECallbacks {
   onDone?: (event: Extract<SSEEvent, { type: 'done' }>) => void
   /** 发生错误时触发 */
   onError?: (message: string) => void
+  /** 工具调用开始 */
+  onToolStart?: (tool: string) => void
+  /** 工具调用结果 */
+  onToolResult?: (event: Extract<SSEEvent, { type: 'tool_result' }>) => void
 }
 
 /** useSSE 返回值 */
@@ -131,6 +135,14 @@ export function useSSE(): UseSSEReturn {
 
                 case 'error':
                   callbacks.onError?.(event.message)
+                  break
+
+                case 'tool_start':
+                  callbacks.onToolStart?.(event.tool)
+                  break
+
+                case 'tool_result':
+                  callbacks.onToolResult?.(event)
                   break
               }
             } catch {

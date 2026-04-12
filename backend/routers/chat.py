@@ -12,7 +12,7 @@
 # ==================================================
 
 import logging
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -48,6 +48,10 @@ class ChatStreamRequest(BaseModel):
         None,
         description="对话 ID；传 null 或不传则自动创建新对话",
     )
+    mode: Literal["rag", "rag_tools"] = Field(
+        default="rag",
+        description="对话模式：rag（原始模式）/ rag_tools（工具增强模式）",
+    )
 
 
 class ChatNormalRequest(BaseModel):
@@ -55,6 +59,10 @@ class ChatNormalRequest(BaseModel):
     kb_id: int = Field(..., description="知识库 ID")
     question: str = Field(..., min_length=1, max_length=5000, description="用户的问题")
     conversation_id: Optional[int] = Field(None, description="对话 ID，空则创建新对话")
+    mode: Literal["rag", "rag_tools"] = Field(
+        default="rag",
+        description="对话模式：rag（原始模式）/ rag_tools（工具增强模式）",
+    )
 
 
 class SourceDocumentResponse(BaseModel):
@@ -95,6 +103,8 @@ class ChatNormalResponse(BaseModel):
 data: {"type": "start",  "conversation_id": 1}
 data: {"type": "token",  "content": "根"}
 data: {"type": "token",  "content": "据"}
+data: {"type": "tool_start", "tool": "kb_semantic_search"}
+data: {"type": "tool_result", "tool": "kb_semantic_search", "ok": true, "summary": "命中 3 条高相关片段"}
 ...（每个 token 一条）
 data: {"type": "done",   "conversation_id": 1, "message_id": 5, "sources": [...]}
 ```
@@ -165,6 +175,7 @@ async def chat_stream(
                 kb_id=request.kb_id,
                 user_message=request.question,
                 conversation_id=request.conversation_id,
+                mode=request.mode,
             ):
                 yield chunk
         except ValueError as e:
@@ -225,6 +236,7 @@ async def chat_normal(
             kb_id=request.kb_id,
             user_message=request.question,
             conversation_id=request.conversation_id,
+            mode=request.mode,
         )
     except ValueError as e:
         # 业务逻辑错误（对话 ID 不存在、知识库不存在等）

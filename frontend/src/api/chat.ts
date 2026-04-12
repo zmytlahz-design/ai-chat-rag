@@ -45,6 +45,7 @@ export interface ChatNormalRequest {
   kb_id: number
   question: string
   conversation_id?: number
+  mode?: 'rag' | 'rag_tools'
 }
 
 /** 普通对话响应体 */
@@ -85,8 +86,28 @@ export interface SSEErrorEvent {
   message: string
 }
 
+/** 工具开始事件 */
+export interface SSEToolStartEvent {
+  type: 'tool_start'
+  tool: string
+}
+
+/** 工具完成事件 */
+export interface SSEToolResultEvent {
+  type: 'tool_result'
+  tool: string
+  ok: boolean
+  summary: string
+}
+
 /** SSE 事件联合类型，供 useSSE Hook 使用 */
-export type SSEEvent = SSEStartEvent | SSETokenEvent | SSEDoneEvent | SSEErrorEvent
+export type SSEEvent =
+  | SSEStartEvent
+  | SSETokenEvent
+  | SSEDoneEvent
+  | SSEErrorEvent
+  | SSEToolStartEvent
+  | SSEToolResultEvent
 
 // ==================== API 函数 ====================
 

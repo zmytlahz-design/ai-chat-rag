@@ -175,6 +175,7 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
           kb_id: kbId,
           question,
           conversation_id: currentConversationId ?? undefined,
+          mode: 'rag_tools',
         }),
         signal: streamAbortController.signal,
       })
@@ -243,6 +244,11 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
                 get().fetchConversations(kbId)
                 break
               }
+
+              case 'tool_start':
+              case 'tool_result':
+                // 工具状态事件当前仅保留为协议兼容，后续可接入独立时间线 UI
+                break
 
               // error：将错误信息写入占位消息的 content
               case 'error':
