@@ -75,6 +75,60 @@ class AgentService:
         ]
         return any(k in q for k in keywords)
 
+    @staticmethod
+    def _is_fx_intent(question: str) -> bool:
+        q = question.lower()
+        keywords = [
+            "汇率",
+            "美元兑",
+            "人民币兑",
+            "usd",
+            "cny",
+            "rmb",
+            "exchange rate",
+            "fx",
+        ]
+        return any(k in q for k in keywords)
+
+    async def _run_mcp_fx_rate(self, question: str) -> dict:
+        tool_name = settings.MCP_FX_TOOL_NAME
+        raw = await mcp_client_manager.call_tool(
+            name=tool_name,
+            arguments={"query": question},
+        )
+
+        candidates = []
+        if isinstance(raw.get("hits"), list):
+            candidates = raw.get("hits", [])
+        elif isinstance(raw.get("items"), list):
+            candidates = raw.get("items", [])
+        elif isinstance(raw.get("results"), list):
+            candidates = raw.get("results", [])
+
+        hits = []
+        for item in candidates[: settings.MCP_MAX_RESULTS]:
+            if not isinstance(item, dict):
+                continue
+            title = str(item.get("title") or "汇率结果")
+            url = str(item.get("url") or item.get("link") or "")
+            snippet = str(item.get("snippet") or item.get("content") or item.get("summary") or "")
+            hits.append(
+                {
+                    "source_type": "api",
+                    "title": title,
+                    "url": url,
+                    "content": snippet,
+                    "score": float(item.get("score", 1.0)),
+                }
+            )
+
+        return {
+            "query": question,
+            "hits": hits,
+            "provider": "mcp",
+            "tool": tool_name,
+        }
+
     async def _run_mcp_web_search(self, question: str) -> dict:
         tool_name = settings.MCP_WEB_TOOL_NAME
         raw = await mcp_client_manager.call_tool(
@@ -131,6 +185,15 @@ class AgentService:
         elif tool_name == "get_conversation_stats":
             result = await local_tool_service.get_conversation_stats(db=db, kb_id=kb_id, days=7)
         else:
+            # 汇率类问题优先走 MCP 专用工具，避免被本地文档误命中
+            if settings.ENABLE_MCP and self._is_fx_intent(question):
+                try:
+                    fx_result = await self._run_mcp_fx_rate(question)
+                    if fx_result.get("hits"):
+                        return "mcp_fx_rate", fx_result
+                except Exception as fx_error:
+                    logger.warning("fx_rate 调用失败，回退到其他策略: %s", fx_error)
+
             result = await local_tool_service.kb_semantic_search(
                 kb_id=kb_id,
                 query=question,
@@ -151,7 +214,7 @@ class AgentService:
     def _build_sources_from_hits(hits: list[dict]) -> list[dict]:
         sources: list[dict] = []
         for hit in hits:
-            if hit.get("source_type") == "web":
+            if hit.get("source_type") in {"web", "api"}:
                 title = hit.get("title") or "网页结果"
                 url = hit.get("url") or ""
                 domain = ""
@@ -223,7 +286,7 @@ class AgentService:
     def _build_evidence_text(hits: list[dict]) -> str:
         parts: list[str] = []
         for hit in hits:
-            if hit.get("source_type") == "web":
+            if hit.get("source_type") in {"web", "api"}:
                 title = hit.get("title", "网页结果")
                 url = hit.get("url", "")
                 parts.append(

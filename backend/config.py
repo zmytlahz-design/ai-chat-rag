@@ -114,6 +114,10 @@ class Settings(BaseSettings):
         default="web_search",
         description="用于联网检索的 MCP 工具名"
     )
+    MCP_FX_TOOL_NAME: str = Field(
+        default="fx_rate",
+        description="用于汇率查询的 MCP 工具名"
+    )
     MCP_TIMEOUT_SEC: int = Field(
         default=12,
         description="MCP 调用超时（秒）"

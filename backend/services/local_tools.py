@@ -181,6 +181,11 @@ class LocalToolService:
             return f"命中 {len(result.get('hits', []))} 条高相关片段"
         if tool_name == "mcp_web_search":
             return f"联网检索命中 {len(result.get('hits', []))} 条结果"
+        if tool_name == "mcp_fx_rate":
+            hits = result.get("hits", [])
+            if hits:
+                return f"汇率查询成功：{hits[0].get('content', '')}"
+            return "汇率查询返回 0 条结果"
         return "工具执行完成"
 
 
