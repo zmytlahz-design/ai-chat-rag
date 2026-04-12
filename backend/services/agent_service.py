@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import AsyncIterator
+from urllib.parse import urlparse
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
@@ -10,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import settings
 from services.answer_guard import build_no_evidence_message, build_tool_failure_message
 from services.local_tools import local_tool_service
+from services.mcp_client_manager import mcp_client_manager
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +66,57 @@ class AgentService:
             return "get_conversation_stats"
         return "kb_semantic_search"
 
+    @staticmethod
+    def _is_web_intent(question: str) -> bool:
+        q = question.lower()
+        keywords = [
+            "最新", "今天", "最近", "新闻", "股价", "汇率", "天气",
+            "实时", "price", "today", "latest", "news",
+        ]
+        return any(k in q for k in keywords)
+
+    async def _run_mcp_web_search(self, question: str) -> dict:
+        tool_name = settings.MCP_WEB_TOOL_NAME
+        raw = await mcp_client_manager.call_tool(
+            name=tool_name,
+            arguments={
+                "query": question,
+                "top_k": settings.MCP_MAX_RESULTS,
+            },
+        )
+
+        candidates = []
+        if isinstance(raw.get("hits"), list):
+            candidates = raw.get("hits", [])
+        elif isinstance(raw.get("items"), list):
+            candidates = raw.get("items", [])
+        elif isinstance(raw.get("results"), list):
+            candidates = raw.get("results", [])
+
+        hits = []
+        for item in candidates[: settings.MCP_MAX_RESULTS]:
+            if not isinstance(item, dict):
+                continue
+            title = str(item.get("title") or item.get("name") or "网页结果")
+            url = str(item.get("url") or item.get("link") or "")
+            snippet = str(item.get("snippet") or item.get("content") or item.get("summary") or "")
+            hits.append(
+                {
+                    "source_type": "web",
+                    "title": title,
+                    "url": url,
+                    "content": snippet,
+                    "score": float(item.get("score", 1.0)),
+                }
+            )
+
+        return {
+            "query": question,
+            "hits": hits,
+            "provider": "mcp",
+            "tool": tool_name,
+        }
+
     async def _run_tool(
         self,
         db: AsyncSession,
@@ -84,19 +137,50 @@ class AgentService:
                 top_k=5,
                 min_score=settings.RAG_MIN_SCORE,
             )
+            # 当本地知识库证据不足且用户问题偏实时信息时，尝试走 MCP 联网检索
+            if (
+                settings.ENABLE_MCP
+                and self._is_web_intent(question)
+                and not result.get("hits")
+            ):
+                mcp_result = await self._run_mcp_web_search(question)
+                return "mcp_web_search", mcp_result
         return tool_name, result
 
     @staticmethod
     def _build_sources_from_hits(hits: list[dict]) -> list[dict]:
-        return [
-            {
-                "doc_id": hit.get("doc_id"),
-                "filename": hit.get("filename", "未知文件"),
-                "chunk_index": hit.get("chunk_index", 0),
-                "content": hit.get("content", ""),
-            }
-            for hit in hits
-        ]
+        sources: list[dict] = []
+        for hit in hits:
+            if hit.get("source_type") == "web":
+                title = hit.get("title") or "网页结果"
+                url = hit.get("url") or ""
+                domain = ""
+                if url:
+                    try:
+                        domain = urlparse(url).netloc
+                    except Exception:
+                        domain = ""
+                filename = f"{title} ({domain})" if domain else str(title)
+                snippet = hit.get("content", "")
+                content = f"{snippet}\n链接: {url}" if url else str(snippet)
+                sources.append(
+                    {
+                        "doc_id": None,
+                        "filename": filename,
+                        "chunk_index": 0,
+                        "content": content,
+                    }
+                )
+            else:
+                sources.append(
+                    {
+                        "doc_id": hit.get("doc_id"),
+                        "filename": hit.get("filename", "未知文件"),
+                        "chunk_index": hit.get("chunk_index", 0),
+                        "content": hit.get("content", ""),
+                    }
+                )
+        return sources
 
     @staticmethod
     def _render_status_answer(tool_name: str, result: dict) -> str:
@@ -128,13 +212,29 @@ class AgentService:
         return "工具执行完成。"
 
     @staticmethod
+    def _is_structured_tool(tool_name: str) -> bool:
+        return tool_name in {
+            "get_kb_summary",
+            "get_doc_status",
+            "get_conversation_stats",
+        }
+
+    @staticmethod
     def _build_evidence_text(hits: list[dict]) -> str:
         parts: list[str] = []
         for hit in hits:
-            parts.append(
-                f"[来源: {hit.get('filename', '未知文件')}#{hit.get('chunk_index', 0)} | "
-                f"score={hit.get('score', 0)}]\n{hit.get('content', '')}"
-            )
+            if hit.get("source_type") == "web":
+                title = hit.get("title", "网页结果")
+                url = hit.get("url", "")
+                parts.append(
+                    f"[来源: {title} | url={url} | score={hit.get('score', 1.0)}]\n"
+                    f"{hit.get('content', '')}"
+                )
+            else:
+                parts.append(
+                    f"[来源: {hit.get('filename', '未知文件')}#{hit.get('chunk_index', 0)} | "
+                    f"score={hit.get('score', 0)}]\n{hit.get('content', '')}"
+                )
         return "\n\n".join(parts)
 
     async def generate_answer(
@@ -150,7 +250,7 @@ class AgentService:
             logger.error("工具调用失败: %s", e, exc_info=True)
             return build_tool_failure_message(), []
 
-        if tool_name != "kb_semantic_search":
+        if self._is_structured_tool(tool_name):
             return self._render_status_answer(tool_name, tool_result), []
 
         hits = tool_result.get("hits", [])
@@ -190,7 +290,7 @@ class AgentService:
             yield {"type": "sources", "sources": []}
             return
 
-        if tool_name != "kb_semantic_search":
+        if self._is_structured_tool(tool_name):
             yield {"type": "token", "content": self._render_status_answer(tool_name, tool_result)}
             yield {"type": "sources", "sources": []}
             return
@@ -218,4 +318,3 @@ class AgentService:
 
 
 agent_service = AgentService()
-

@@ -179,8 +179,9 @@ class LocalToolService:
             )
         if tool_name == "kb_semantic_search":
             return f"命中 {len(result.get('hits', []))} 条高相关片段"
+        if tool_name == "mcp_web_search":
+            return f"联网检索命中 {len(result.get('hits', []))} 条结果"
         return "工具执行完成"
 
 
 local_tool_service = LocalToolService()
-

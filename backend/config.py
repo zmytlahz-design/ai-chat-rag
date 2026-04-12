@@ -97,6 +97,32 @@ class Settings(BaseSettings):
         description="单次工具调用超时时间（秒）"
     )
 
+    # ---------- MCP 配置 ----------
+    ENABLE_MCP: bool = Field(
+        default=False,
+        description="是否启用 MCP 工具调用"
+    )
+    MCP_BRIDGE_URL: str = Field(
+        default="",
+        description="MCP Bridge 服务地址（例如 http://localhost:9000）"
+    )
+    MCP_API_KEY: str = Field(
+        default="",
+        description="MCP Bridge 鉴权 API Key（可选）"
+    )
+    MCP_WEB_TOOL_NAME: str = Field(
+        default="web_search",
+        description="用于联网检索的 MCP 工具名"
+    )
+    MCP_TIMEOUT_SEC: int = Field(
+        default=12,
+        description="MCP 调用超时（秒）"
+    )
+    MCP_MAX_RESULTS: int = Field(
+        default=5,
+        description="MCP 检索默认返回条数"
+    )
+
     # ---------- CORS 配置 ----------
     # 允许跨域请求的前端地址列表，多个地址用逗号分隔
     CORS_ORIGINS: list[str] = Field(
