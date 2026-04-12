@@ -6,6 +6,12 @@ interface SourceReferenceProps {
   sources: SourceDocument[]
 }
 
+function extractUrls(text: string): string[] {
+  const matches = text.match(/https?:\/\/[^\s)]+/g) || []
+  const unique = Array.from(new Set(matches))
+  return unique.slice(0, 3)
+}
+
 /**
  * SourceReference：展示 RAG 检索到的引用来源文档片段。
  *
@@ -59,6 +65,7 @@ export function SourceReference({ sources }: SourceReferenceProps) {
             const preview = src.content.length > 150 && !isChunkExpanded
               ? src.content.slice(0, 150) + '...'
               : src.content
+            const urls = extractUrls(src.content)
 
             return (
               <div
@@ -85,6 +92,27 @@ export function SourceReference({ sources }: SourceReferenceProps) {
 
                 {/* 文本内容预览 */}
                 <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">{preview}</p>
+
+                {/* 外部链接（MCP 来源等） */}
+                {urls.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {urls.map((url) => (
+                      <a
+                        key={url}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 rounded-full bg-blue-100 text-blue-700 px-2 py-0.5 hover:bg-blue-200 transition-colors"
+                        title={url}
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 015.656 5.656l-3 3a4 4 0 11-5.656-5.656M10.172 13.828a4 4 0 01-5.656-5.656l3-3a4 4 0 115.656 5.656" />
+                        </svg>
+                        打开来源
+                      </a>
+                    ))}
+                  </div>
+                )}
 
                 {/* 展开/收起长内容 */}
                 {src.content.length > 150 && (
