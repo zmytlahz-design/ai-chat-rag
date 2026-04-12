@@ -54,7 +54,10 @@ export const useKnowledgeStore = create<KnowledgeState & KnowledgeActions>((set,
     set({ isLoading: true, error: null })
     try {
       const result = await knowledgeApi.list()
-      set({ knowledgeBases: result.items, isLoading: false })
+      const items = Array.isArray((result as { items?: unknown })?.items)
+        ? ((result as { items: KnowledgeBase[] }).items)
+        : []
+      set({ knowledgeBases: items, isLoading: false })
 
       // 如果当前没有选中的知识库，且列表不为空，自动选中第一个
       const { currentKbId, knowledgeBases } = get()
@@ -75,7 +78,7 @@ export const useKnowledgeStore = create<KnowledgeState & KnowledgeActions>((set,
   createKb: async (data: KnowledgeBaseCreateInput) => {
     const newKb = await knowledgeApi.create(data)
     set(state => ({
-      knowledgeBases: [...state.knowledgeBases, newKb],
+      knowledgeBases: [...(Array.isArray(state.knowledgeBases) ? state.knowledgeBases : []), newKb],
       currentKbId: newKb.id, // 创建后自动切换到新知识库
     }))
     return newKb
@@ -85,7 +88,7 @@ export const useKnowledgeStore = create<KnowledgeState & KnowledgeActions>((set,
   updateKb: async (id: number, data: Partial<KnowledgeBaseCreateInput>) => {
     const updated = await knowledgeApi.update(id, data)
     set(state => ({
-      knowledgeBases: state.knowledgeBases.map(kb =>
+      knowledgeBases: (Array.isArray(state.knowledgeBases) ? state.knowledgeBases : []).map(kb =>
         kb.id === id ? updated : kb,
       ),
     }))
@@ -96,7 +99,8 @@ export const useKnowledgeStore = create<KnowledgeState & KnowledgeActions>((set,
   deleteKb: async (id: number) => {
     await knowledgeApi.delete(id)
     set(state => {
-      const remaining = state.knowledgeBases.filter(kb => kb.id !== id)
+      const currentList = Array.isArray(state.knowledgeBases) ? state.knowledgeBases : []
+      const remaining = currentList.filter(kb => kb.id !== id)
       return {
         knowledgeBases: remaining,
         // 若删除的是当前选中的 KB，切换到列表第一个（或 null）

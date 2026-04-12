@@ -30,7 +30,7 @@ const BASE = '/api/v1/knowledge-bases'
 export const knowledgeApi = {
   /** 获取知识库列表（分页） */
   list(skip = 0, limit = 50): Promise<KnowledgeBaseListResponse> {
-    return apiClient.get(BASE, { params: { skip, limit } }).then(r => r.data)
+    return apiClient.get(`${BASE}/`, { params: { skip, limit } }).then(r => r.data)
   },
 
   /** 获取单个知识库详情 */
@@ -40,7 +40,7 @@ export const knowledgeApi = {
 
   /** 创建知识库 */
   create(data: KnowledgeBaseCreateInput): Promise<KnowledgeBase> {
-    return apiClient.post(BASE, data).then(r => r.data)
+    return apiClient.post(`${BASE}/`, data).then(r => r.data)
   },
 
   /** 更新知识库（部分更新） */

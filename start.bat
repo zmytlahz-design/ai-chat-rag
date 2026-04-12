@@ -24,25 +24,22 @@ if not exist ".env" (
     exit /b 0
 )
 
-:: 与 docker-compose 中 FRONTEND_PORT 一致；兼容旧变量名 NGINX_PORT
 set "APP_PORT="
 set "LEGACY_PORT="
 for /f "usebackq eol=# tokens=1,* delims==" %%A in (".env") do (
     if /i "%%~A"=="FRONTEND_PORT" set "APP_PORT=%%B"
     if /i "%%~A"=="NGINX_PORT" set "LEGACY_PORT=%%B"
 )
-if defined APP_PORT goto :port_ok
+if defined APP_PORT goto port_ok
 if defined LEGACY_PORT set "APP_PORT=%LEGACY_PORT%"
 if not defined APP_PORT set "APP_PORT=80"
 :port_ok
 
 echo [1/3] 正在启动服务...
-echo.
 docker compose up -d
 if %errorlevel% neq 0 (
     echo.
-    echo [提示] 镜像不存在或启动失败，正在构建并启动（首次运行或依赖变更时会执行）...
-    echo.
+    echo [提示] 镜像不存在或启动失败，正在构建并启动...
     docker compose up -d --build
 )
 if %errorlevel% neq 0 (
@@ -52,11 +49,15 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
+set "COMPOSE_PORT_RAW="
+for /f "delims=" %%P in ('docker compose port frontend 80 2^>nul') do set "COMPOSE_PORT_RAW=%%P"
+if defined COMPOSE_PORT_RAW (
+    for /f "tokens=2 delims=:" %%Q in ("%COMPOSE_PORT_RAW%") do set "APP_PORT=%%Q"
+)
+
 echo.
 echo [2/3] 等待服务就绪...
-timeout /t 8 /nobreak >nul
-
-:: 探测 frontend 容器（对外端口由 FRONTEND_PORT 映射，容器内仍为 80）
+timeout /t 5 /nobreak >nul
 docker exec rag_frontend wget -qO- http://127.0.0.1:80/health >nul 2>&1
 if %errorlevel% equ 0 (
     echo [OK] 服务健康检查通过
@@ -77,5 +78,4 @@ echo ============================================
 echo.
 
 start http://localhost:%APP_PORT%
-
 pause

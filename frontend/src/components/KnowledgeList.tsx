@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils'
 export function KnowledgeList() {
   const { knowledgeBases, currentKbId, selectKb, createKb, deleteKb } = useKnowledgeStore()
   const { fetchConversations, clearMessages } = useChatStore()
+  const safeKnowledgeBases = Array.isArray(knowledgeBases) ? knowledgeBases : []
 
   const [createOpen, setCreateOpen] = useState(false)
   const [name, setName] = useState('')
@@ -107,7 +108,7 @@ export function KnowledgeList() {
       </div>
 
       <div className="space-y-1">
-        {knowledgeBases.map(kb => (
+        {safeKnowledgeBases.map(kb => (
           <div
             key={kb.id}
             className={cn(

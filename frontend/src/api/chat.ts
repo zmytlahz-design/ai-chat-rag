@@ -102,7 +102,7 @@ export const chatApi = {
   /** 获取某知识库下的对话列表（分页） */
   listConversations(kbId: number, skip = 0, limit = 50): Promise<ConversationListResponse> {
     return apiClient
-      .get(CONV_BASE, { params: { kb_id: kbId, skip, limit } })
+      .get(`${CONV_BASE}/`, { params: { kb_id: kbId, skip, limit } })
       .then(r => r.data)
   },
 

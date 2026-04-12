@@ -50,7 +50,8 @@ export default function ChatPage() {
     sendMessage(currentKbId, text)
   }
 
-  const currentKb = knowledgeBases.find(kb => kb.id === currentKbId)
+  const safeKnowledgeBases = Array.isArray(knowledgeBases) ? knowledgeBases : []
+  const currentKb = safeKnowledgeBases.find(kb => kb.id === currentKbId)
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">

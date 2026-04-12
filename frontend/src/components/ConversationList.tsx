@@ -18,6 +18,7 @@ export function ConversationList() {
     selectConversation,
     deleteConversation,
   } = useChatStore()
+  const safeConversations = Array.isArray(conversations) ? conversations : []
 
   if (!currentKbId) return null
 
@@ -30,10 +31,10 @@ export function ConversationList() {
       </div>
 
       <div className="space-y-1">
-        {conversations.length === 0 ? (
+        {safeConversations.length === 0 ? (
           <p className="px-2 text-xs text-muted-foreground">暂无记录</p>
         ) : (
-          conversations.map(conv => (
+          safeConversations.map(conv => (
             <div
               key={conv.id}
               className={cn(
