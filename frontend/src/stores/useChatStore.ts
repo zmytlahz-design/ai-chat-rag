@@ -4,6 +4,14 @@ import { chatApi } from '../api/chat'
 
 // ==================== 类型定义 ====================
 
+export interface ToolEvent {
+  type: 'tool_start' | 'tool_result'
+  tool: string
+  ok?: boolean
+  summary?: string
+  at: string
+}
+
 /**
  * 前端消息实体（区别于后端 ChatMessageData）
  *
@@ -19,6 +27,7 @@ export interface ChatMessage {
   content: string
   sources?: SourceDocument[]
   isStreaming?: boolean      // 是否正在流式输出
+  toolEvents?: ToolEvent[]
   created_at: string
 }
 
@@ -155,6 +164,7 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
       role: 'assistant',
       content: '',
       isStreaming: true,
+      toolEvents: [],
       created_at: new Date().toISOString(),
     }
 
@@ -246,8 +256,45 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
               }
 
               case 'tool_start':
+                set(state => ({
+                  messages: state.messages.map(m =>
+                    m.localId === assistantLocalId
+                      ? {
+                          ...m,
+                          toolEvents: [
+                            ...(m.toolEvents ?? []),
+                            {
+                              type: 'tool_start',
+                              tool: String(event.tool ?? 'unknown'),
+                              at: new Date().toISOString(),
+                            },
+                          ],
+                        }
+                      : m,
+                  ),
+                }))
+                break
+
               case 'tool_result':
-                // 工具状态事件当前仅保留为协议兼容，后续可接入独立时间线 UI
+                set(state => ({
+                  messages: state.messages.map(m =>
+                    m.localId === assistantLocalId
+                      ? {
+                          ...m,
+                          toolEvents: [
+                            ...(m.toolEvents ?? []),
+                            {
+                              type: 'tool_result',
+                              tool: String(event.tool ?? 'unknown'),
+                              ok: Boolean(event.ok),
+                              summary: String(event.summary ?? ''),
+                              at: new Date().toISOString(),
+                            },
+                          ],
+                        }
+                      : m,
+                  ),
+                }))
                 break
 
               // error：将错误信息写入占位消息的 content

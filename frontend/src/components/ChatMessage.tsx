@@ -1,5 +1,5 @@
 import ReactMarkdown from 'react-markdown'
-import type { ChatMessage as ChatMessageType } from '../stores/useChatStore'
+import type { ChatMessage as ChatMessageType, ToolEvent } from '../stores/useChatStore'
 import { SourceReference } from './SourceReference'
 import { remarkPlugins, rehypePlugins, markdownComponents } from '../utils/markdown.tsx'
 
@@ -50,7 +50,7 @@ function UserMessage({ message }: { message: ChatMessageType }) {
 // ==================== AI 助手消息 ====================
 
 function AssistantMessage({ message }: { message: ChatMessageType }) {
-  const { content, isStreaming, sources } = message
+  const { content, isStreaming, sources, toolEvents } = message
   const isEmpty = !content && isStreaming
 
   return (
@@ -67,6 +67,10 @@ function AssistantMessage({ message }: { message: ChatMessageType }) {
         <div className="flex-1 min-w-0">
           {/* 消息卡片 */}
           <div className="bg-white border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+            {!!toolEvents?.length && (
+              <ToolExecutionTrace events={toolEvents} />
+            )}
+
             {/* 内容区域 */}
             {isEmpty ? (
               // 正在思考：三个点动画
@@ -106,6 +110,28 @@ function AssistantMessage({ message }: { message: ChatMessageType }) {
             </span>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+function ToolExecutionTrace({ events }: { events: ToolEvent[] }) {
+  return (
+    <div className="mb-3 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2">
+      <p className="text-[11px] font-medium text-blue-700 mb-1">工具执行过程</p>
+      <div className="space-y-1">
+        {events.map((ev, idx) => (
+          <div key={`${ev.type}-${ev.tool}-${idx}`} className="text-[11px] text-blue-800">
+            {ev.type === 'tool_start' ? (
+              <span>• 开始调用：{ev.tool}</span>
+            ) : (
+              <span>
+                • 调用结果：{ev.tool} {ev.ok ? '成功' : '失败'}
+                {ev.summary ? `（${ev.summary}）` : ''}
+              </span>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   )
