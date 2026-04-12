@@ -2,6 +2,11 @@ import { create } from 'zustand'
 import type { SourceDocument, Conversation, SSEDoneEvent } from '../api/chat'
 import { chatApi } from '../api/chat'
 
+const sleep = (ms: number): Promise<void> =>
+  new Promise(resolve => {
+    setTimeout(resolve, ms)
+  })
+
 // ==================== 类型定义 ====================
 
 export interface ToolEvent {
@@ -86,11 +91,23 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
 
   /** 从后端拉取对话列表（切换知识库或刷新时调用） */
   fetchConversations: async (kbId: number) => {
-    try {
-      const result = await chatApi.listConversations(kbId)
-      set({ conversations: result.items })
-    } catch (err) {
-      console.error('加载对话列表失败:', err)
+    const retryDelays = [0, 600, 1500]
+
+    for (let i = 0; i < retryDelays.length; i += 1) {
+      try {
+        if (retryDelays[i] > 0) {
+          await sleep(retryDelays[i])
+        }
+        const result = await chatApi.listConversations(kbId)
+        set({ conversations: result.items, error: null })
+        return
+      } catch (err) {
+        const isLast = i === retryDelays.length - 1
+        if (isLast) {
+          console.error('加载对话列表失败:', err)
+          set({ error: (err as Error).message })
+        }
+      }
     }
   },
 
