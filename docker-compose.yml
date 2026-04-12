@@ -81,6 +81,16 @@ services:
       CORS_ORIGINS:    '["http://localhost", "http://localhost:80", "http://localhost:3080", "http://127.0.0.1", "http://127.0.0.1:3080"]'
       CHUNK_SIZE:      ${CHUNK_SIZE:-500}
       CHUNK_OVERLAP:   ${CHUNK_OVERLAP:-50}
+      ENABLE_TOOLS:    ${ENABLE_TOOLS:-true}
+      STRICT_GROUNDING: ${STRICT_GROUNDING:-true}
+      RAG_MIN_SCORE:   ${RAG_MIN_SCORE:-0.55}
+      TOOL_TIMEOUT_SEC: ${TOOL_TIMEOUT_SEC:-8}
+      ENABLE_MCP:      ${ENABLE_MCP:-false}
+      MCP_BRIDGE_URL:  ${MCP_BRIDGE_URL:-http://host.docker.internal:9000}
+      MCP_API_KEY:     ${MCP_API_KEY:-}
+      MCP_WEB_TOOL_NAME: ${MCP_WEB_TOOL_NAME:-web_search}
+      MCP_TIMEOUT_SEC: ${MCP_TIMEOUT_SEC:-12}
+      MCP_MAX_RESULTS: ${MCP_MAX_RESULTS:-5}
     depends_on:
       postgres:
         condition: service_healthy  # 等待 postgres healthcheck 通过
