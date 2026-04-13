@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import os
 from typing import Any
 
 import httpx
@@ -129,8 +130,46 @@ async def _call_web_search(arguments: dict[str, Any]) -> dict[str, Any]:
     if not query:
         raise HTTPException(status_code=400, detail="query is required")
 
-    params = {"q": query, "format": "json", "no_redirect": 1, "no_html": 1}
+    serpapi_key = os.getenv("SERPAPI_API_KEY", "").strip()
+    serpapi_engine = os.getenv("SERPAPI_ENGINE", "google").strip() or "google"
     hits: list[dict[str, Any]] = []
+
+    if serpapi_key:
+        params = {
+            "engine": serpapi_engine,
+            "q": query,
+            "api_key": serpapi_key,
+            "num": top_k,
+        }
+        async with httpx.AsyncClient(timeout=12, follow_redirects=True) as client:
+            resp = await client.get("https://serpapi.com/search.json", params=params)
+            resp.raise_for_status()
+            data = resp.json()
+
+        organic = data.get("organic_results", [])
+        if isinstance(organic, list):
+            for item in organic:
+                if len(hits) >= top_k:
+                    break
+                if not isinstance(item, dict):
+                    continue
+                title = item.get("title") or "Result"
+                url = item.get("link") or ""
+                snippet = item.get("snippet") or ""
+                if isinstance(title, str) and isinstance(snippet, str):
+                    hits.append(
+                        {
+                            "title": title[:120],
+                            "url": url,
+                            "snippet": snippet[:500],
+                            "score": 1.0,
+                            "source_type": "serpapi",
+                        }
+                    )
+
+        return {"hits": hits[:top_k]}
+
+    params = {"q": query, "format": "json", "no_redirect": 1, "no_html": 1}
     async with httpx.AsyncClient(timeout=12, follow_redirects=True) as client:
         resp = await client.get("https://api.duckduckgo.com/", params=params)
         resp.raise_for_status()
@@ -144,6 +183,7 @@ async def _call_web_search(arguments: dict[str, Any]) -> dict[str, Any]:
                 "url": data.get("AbstractURL") or "",
                 "snippet": abstract_text,
                 "score": 1.0,
+                "source_type": "duckduckgo",
             }
         )
 
@@ -162,6 +202,7 @@ async def _call_web_search(arguments: dict[str, Any]) -> dict[str, Any]:
                         "url": item.get("FirstURL") or "",
                         "snippet": text,
                         "score": 0.9,
+                        "source_type": "duckduckgo",
                     }
                 )
 
