@@ -88,15 +88,17 @@
 
 /* Markdown 样式（保持之前添加的，适配暗色模式变量） */
 .markdown-body {
-  @apply text-sm leading-relaxed;
+  @apply text-sm leading-relaxed break-words;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .markdown-body h1 { @apply text-xl font-bold mt-4 mb-2; }
 .markdown-body h2 { @apply text-lg font-bold mt-3 mb-2; }
 .markdown-body h3 { @apply text-base font-semibold mt-3 mb-1; }
-.markdown-body p  { @apply mb-3 last:mb-0; }
+.markdown-body p  { @apply mb-3 last:mb-0 break-words; overflow-wrap: anywhere; }
 .markdown-body ul { @apply list-disc list-inside mb-3 space-y-1; }
 .markdown-body ol { @apply list-decimal list-inside mb-3 space-y-1; }
-.markdown-body li { @apply ml-2; }
+.markdown-body li { @apply ml-2 break-words; overflow-wrap: anywhere; }
 .markdown-body blockquote { @apply border-l-4 border-muted pl-4 py-1 my-3 text-muted-foreground italic; }
 .markdown-body code:not(pre code) { @apply bg-muted px-1.5 py-0.5 rounded text-xs font-mono; }
 .markdown-body pre { @apply bg-muted border border-border rounded-lg p-4 my-3 overflow-x-auto; }
@@ -105,7 +107,7 @@
 .markdown-body th { @apply bg-muted border border-border px-3 py-2 text-left font-semibold; }
 .markdown-body td { @apply border border-border px-3 py-2; }
 .markdown-body tr:nth-child(even) td { @apply bg-muted/50; }
-.markdown-body a { @apply text-primary underline underline-offset-4; }
+.markdown-body a { @apply text-primary underline underline-offset-4 break-all whitespace-normal inline-block max-w-full; }
 .markdown-body hr { @apply border-border my-4; }
 .markdown-body img { @apply max-w-full rounded my-2; }
 

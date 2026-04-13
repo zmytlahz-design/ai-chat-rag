@@ -58,7 +58,7 @@ export const markdownComponents: Components = {
   pre({ children, ...props }) {
     return (
       <pre
-        className="bg-gray-50 border border-gray-200 rounded-lg p-4 my-3 overflow-x-auto text-sm"
+        className="bg-gray-50 border border-gray-200 rounded-lg p-4 my-3 overflow-x-hidden whitespace-pre-wrap break-words text-sm"
         {...props}
       >
         {children}
@@ -73,7 +73,7 @@ export const markdownComponents: Components = {
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-blue-600 hover:underline"
+        className="text-blue-600 hover:underline break-all whitespace-normal inline-block max-w-full"
         {...props}
       >
         {children}
