@@ -59,7 +59,7 @@ export function KnowledgeList() {
   }
 
   return (
-    <div className="space-y-2 min-w-0">
+    <div className="space-y-2 min-w-0 w-full">
       <div className="flex items-center justify-between px-2">
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           知识库
@@ -107,7 +107,7 @@ export function KnowledgeList() {
         </Dialog>
       </div>
 
-      <div className="space-y-1 min-w-0">
+      <div className="space-y-1 min-w-0 w-full">
         {safeKnowledgeBases.map(kb => (
           <div
             key={kb.id}

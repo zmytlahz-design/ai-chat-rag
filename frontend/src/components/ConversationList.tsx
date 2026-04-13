@@ -23,14 +23,14 @@ export function ConversationList() {
   if (!currentKbId) return null
 
   return (
-    <div className="space-y-2 pt-4 min-w-0">
+    <div className="space-y-2 pt-4 min-w-0 w-full">
       <div className="px-2">
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           历史对话
         </h2>
       </div>
 
-      <div className="space-y-1 min-w-0">
+      <div className="space-y-1 min-w-0 w-full">
         {safeConversations.length === 0 ? (
           <p className="px-2 text-xs text-muted-foreground">暂无记录</p>
         ) : (
