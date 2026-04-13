@@ -18,3 +18,11 @@
   max-width: 100%;
   overflow-x: hidden;
 }
+
+.sidebar-shell [data-radix-scroll-area-viewport] > div {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}

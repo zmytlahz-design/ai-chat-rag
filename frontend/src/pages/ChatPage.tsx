@@ -10,7 +10,6 @@ import { ChatMessage } from '@/components/ChatMessage'
 import { ChatInput } from '@/components/ChatInput'
 import { useAutoScroll } from '@/hooks/useAutoScroll'
 import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import '@/styles/sidebar-fix.css'
 import { Separator } from '@/components/ui/separator'
 
@@ -67,7 +66,7 @@ export default function ChatPage() {
         </div>
 
         {/* 侧边栏内容 */}
-        <ScrollArea className="sidebar-scroll flex-1">
+        <div className="sidebar-scroll flex-1 overflow-y-auto">
           <div className="sidebar-viewport p-2 space-y-4">
             {kbLoading ? (
               <div className="px-4 py-8 text-xs text-muted-foreground text-center">加载中...</div>
@@ -76,7 +75,7 @@ export default function ChatPage() {
             )}
             <ConversationList />
           </div>
-        </ScrollArea>
+        </div>
 
         {/* 底部工具栏 */}
         <div className="p-2 border-t bg-muted/30">
