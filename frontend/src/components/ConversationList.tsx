@@ -23,14 +23,14 @@ export function ConversationList() {
   if (!currentKbId) return null
 
   return (
-    <div className="space-y-2 pt-4">
+    <div className="space-y-2 pt-4 min-w-0">
       <div className="px-2">
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           历史对话
         </h2>
       </div>
 
-      <div className="space-y-1">
+      <div className="space-y-1 min-w-0">
         {safeConversations.length === 0 ? (
           <p className="px-2 text-xs text-muted-foreground">暂无记录</p>
         ) : (
@@ -38,7 +38,7 @@ export function ConversationList() {
             <div
               key={conv.id}
               className={cn(
-                "group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors",
+                "group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors w-full min-w-0 overflow-hidden",
                 conv.id === currentConversationId ? "bg-accent text-accent-foreground" : "text-muted-foreground"
               )}
               onClick={() => selectConversation(conv.id)}

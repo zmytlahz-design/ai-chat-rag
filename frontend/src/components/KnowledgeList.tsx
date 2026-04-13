@@ -59,7 +59,7 @@ export function KnowledgeList() {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 min-w-0">
       <div className="flex items-center justify-between px-2">
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           知识库
@@ -107,12 +107,12 @@ export function KnowledgeList() {
         </Dialog>
       </div>
 
-      <div className="space-y-1">
+      <div className="space-y-1 min-w-0">
         {safeKnowledgeBases.map(kb => (
           <div
             key={kb.id}
             className={cn(
-              "group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors",
+              "group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors w-full min-w-0 overflow-hidden",
               kb.id === currentKbId ? "bg-accent text-accent-foreground" : "text-muted-foreground"
             )}
             onClick={() => handleSelect(kb.id)}

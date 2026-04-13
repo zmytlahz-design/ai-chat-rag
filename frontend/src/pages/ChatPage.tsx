@@ -66,7 +66,7 @@ export default function ChatPage() {
         </div>
 
         {/* 侧边栏内容 */}
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 min-w-0">
           <div className="p-2 space-y-4">
             {kbLoading ? (
               <div className="px-4 py-8 text-xs text-muted-foreground text-center">加载中...</div>
