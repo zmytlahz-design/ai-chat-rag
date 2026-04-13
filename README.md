@@ -3,18 +3,6 @@
 
 基于 RAG（检索增强生成）技术的多轮对话知识库系统。上传 PDF/TXT/Markdown 文档，通过向量检索 + LLM 实现智能问答，支持多知识库管理、对话历史和 SSE 流式输出。
 
-## 技术文章（GitHub 文档）
-
-| 文章 | 说明 |
-|------|------|
-| [手搓 ReAct Agent 和 LangChain 的实现对比](docs/手搓-ReAct-Agent-和-LangChain-的实现对比.md) | 手写 ReAct 循环与 LangChain Agent 的对比，以及本项目为何采用固定 RAG 三步 |
-| [RAG 全链路落地踩坑记录](docs/RAG-全链路落地踩坑记录.md) | 从解析、分块、向量化到检索与生成的落地坑点与解决方案 |
-| [Function Calling 多工具编排的闭环实现](docs/Function-Calling-多工具编排的闭环实现.md) | 多工具定义、绑定与「调用→执行→再调用」的闭环实现 |
-
----
-
-
-
 *左侧：知识库列表与历史对话；右侧：基于知识库的 RAG 对话与 Markdown 回复。*
 
 ## 技术栈
