@@ -317,3 +317,89 @@ npm run dev   # 访问 http://localhost:5173
 
 **Q: 本机 Navicat 连 `localhost:5432` 被拒绝？**
 > 执行 `docker-compose ps`，确认 `postgres` 一行包含 `0.0.0.0:5432->5432`（或你配置的 `POSTGRES_PORT`）。修改 `docker-compose.yml` 或 `POSTGRES_PORT` 后需重建：`docker-compose up -d --force-recreate postgres`。本机若已有程序占用 5432，请把 `.env` 中 `POSTGRES_PORT` 改为其他端口并重建。
+
+## 2026-04 Update Notes (Important)
+
+This section reflects the latest behavior in this repository.
+
+### 1) RAG Modes
+
+- `rag`: classic retrieval + answer generation.
+- `rag_tools`: retrieval + local tools + optional MCP fallback.
+
+### 2) Tool Events in Streaming
+
+SSE now supports tool execution events:
+
+- `tool_start`
+- `tool_result`
+- `token`
+- `done`
+
+Frontend renders tool execution trace in chat bubbles.
+
+### 3) MCP Bridge + Web/FX Tools
+
+`mcp_bridge.py` provides:
+
+- `web_search` (DuckDuckGo by default, SerpApi when configured)
+- `fx_rate` (Frankfurter API)
+
+Related env vars:
+
+```env
+ENABLE_MCP=true
+MCP_BRIDGE_URL=http://host.docker.internal:9000
+MCP_WEB_TOOL_NAME=web_search
+MCP_FX_TOOL_NAME=fx_rate
+MCP_TIMEOUT_SEC=12
+MCP_MAX_RESULTS=5
+```
+
+Optional SerpApi in `.env`:
+
+```env
+SERPAPI_API_KEY=...
+SERPAPI_ENGINE=google
+```
+
+### 4) Startup Scripts
+
+- `start.bat`: entrypoint script
+- `start_all.bat`: starts MCP bridge + Docker stack, waits backend health
+- `start_mcp_bridge.bat`: loads SerpApi env from `.env` before launching bridge
+
+### 5) Why "code changed but UI/backend not changed"
+
+Docker containers run built images. If image was built earlier, code changes are not visible until rebuild/recreate.
+
+Use:
+
+```bash
+docker compose up -d --build backend
+docker compose up -d --build frontend
+```
+
+If only backend code changed and backend is mounted in dev mode, restart may be enough:
+
+```bash
+docker compose restart backend
+```
+
+### 6) Common 401 Cause
+
+If you see 401 in logs, identify which upstream failed:
+
+- LLM/Embedding 401: invalid or expired `LLM_API_KEY` / `EMBEDDING_API_KEY`
+- MCP/web 401: invalid upstream API key (for example SerpApi)
+
+### 7) Bubble Overflow / Long Link Wrapping
+
+Long URLs/content inside assistant bubble are now forced to wrap.
+If old styles still appear, rebuild frontend image and hard refresh browser:
+
+```bash
+docker compose up -d --build frontend
+```
+
+Then refresh with `Ctrl + Shift + R`.
