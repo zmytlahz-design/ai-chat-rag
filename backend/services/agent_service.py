@@ -283,6 +283,19 @@ class AgentService:
         }
 
     @staticmethod
+    def _render_fx_answer(hits: list[dict]) -> str:
+        if not hits:
+            return build_no_evidence_message()
+        hit = hits[0]
+        content = str(hit.get("content", "")).strip()
+        title = str(hit.get("title", "")).strip()
+        if content:
+            return content
+        if title:
+            return title
+        return build_no_evidence_message()
+
+    @staticmethod
     def _build_evidence_text(hits: list[dict]) -> str:
         parts: list[str] = []
         for hit in hits:
@@ -319,6 +332,9 @@ class AgentService:
         hits = tool_result.get("hits", [])
         if settings.STRICT_GROUNDING and not hits:
             return build_no_evidence_message(), []
+
+        if tool_name == "mcp_fx_rate":
+            return self._render_fx_answer(hits), self._build_sources_from_hits(hits)
 
         evidence_text = self._build_evidence_text(hits)
         history_text = self._format_history(chat_history)
@@ -362,6 +378,11 @@ class AgentService:
         if settings.STRICT_GROUNDING and not hits:
             yield {"type": "token", "content": build_no_evidence_message()}
             yield {"type": "sources", "sources": []}
+            return
+
+        if tool_name == "mcp_fx_rate":
+            yield {"type": "token", "content": self._render_fx_answer(hits)}
+            yield {"type": "sources", "sources": self._build_sources_from_hits(hits)}
             return
 
         evidence_text = self._build_evidence_text(hits)
