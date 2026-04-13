@@ -11,6 +11,7 @@ import { ChatInput } from '@/components/ChatInput'
 import { useAutoScroll } from '@/hooks/useAutoScroll'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import '@/styles/sidebar-fix.css'
 import { Separator } from '@/components/ui/separator'
 
 /**
@@ -56,7 +57,7 @@ export default function ChatPage() {
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       {/* ======== 左侧侧边栏 ======== */}
-      <aside className="w-[260px] max-w-[260px] min-w-0 flex-shrink-0 bg-muted/30 border-r flex flex-col overflow-hidden">
+      <aside className="sidebar-shell flex-shrink-0 bg-muted/30 border-r flex flex-col">
         {/* Logo / 标题区 */}
         <div className="flex items-center gap-2 px-4 py-4 h-14 border-b">
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
@@ -66,8 +67,8 @@ export default function ChatPage() {
         </div>
 
         {/* 侧边栏内容 */}
-        <ScrollArea className="flex-1 min-w-0 w-full overflow-hidden">
-          <div className="p-2 space-y-4 w-full max-w-full min-w-0 overflow-x-hidden box-border">
+        <ScrollArea className="sidebar-scroll flex-1">
+          <div className="sidebar-viewport p-2 space-y-4">
             {kbLoading ? (
               <div className="px-4 py-8 text-xs text-muted-foreground text-center">加载中...</div>
             ) : (

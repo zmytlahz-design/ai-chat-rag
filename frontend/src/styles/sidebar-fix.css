@@ -1,0 +1,20 @@
+/* Enforce sidebar content width to prevent overflow beyond the aside. */
+.sidebar-shell {
+  width: 260px;
+  max-width: 260px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.sidebar-shell * {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.sidebar-shell .sidebar-scroll,
+.sidebar-shell .sidebar-viewport {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
